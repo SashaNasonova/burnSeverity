@@ -40,6 +40,7 @@ override = False
 
 Override can be used if you already know which image dates you want to use. The script will accept a dictionary of pre- and post-fire image dates along
 with the sensor (S2, L8 or L9). It can also be used for reruns with the help of quicklooks in the alt folder if the first attempt isn't satisfactory.
+(NOTE: override may not be functioning correctly as of August 28, 2023). 
 
 To run:
 1. In Anaconda Prompt active the gee environment
