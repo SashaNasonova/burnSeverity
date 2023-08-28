@@ -3,12 +3,12 @@
 VERY MUCH STILL IN PROGRESS!
 
 Burn Severity Mapping with spaceborne multispectral imagery from Sentinel-2 MSI and Landsat-8/9 OLI Sensors.
-The process has been broken down into 4 parts:
+The process has been broken down into 4 parts:  
     
-Part A - Prepare file perimeter vector file
-Part B - Burn Severity Product Generation (barc, quicklooks and qa powerpoint)
-Part C - Filter and Export 
-Part D - Map Generation
+Part A - Prepare file perimeter vector file  
+Part B - Burn Severity Product Generation (barc, quicklooks and qa powerpoint)  
+Part C - Filter and Export  
+Part D - Map Generation  
 
 ### Installation
 Please follow the instruction outlined here: https://github.com/SashaNasonova/geeMosaics. These scripts require the gee and geemap packages as well as gdal.
