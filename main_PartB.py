@@ -24,7 +24,6 @@ import os, shutil
 os.chdir(code_loc)
 
 from burnsev_gee import * 
-from burnsev_mosaic import *
 from burnsev_ql import *
 
 import logging
