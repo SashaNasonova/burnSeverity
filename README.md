@@ -15,12 +15,12 @@ Please follow the instruction outlined here: https://github.com/SashaNasonova/ge
 Installing gdal can be a huge pain. 
 
 ### Part A
-Prepare fire perimeter shapefile. Ensure that the shapefile contains 5 TEXT fields:
-Fire_NUMBE: firenumber or some unique identifier. 
-pre_T1: start of pre-fire image interval ("yyyy-mm-dd")
-pre_T2: end of pre-fire image interval ("yyyy-mm-dd")
-post_T1: start of post-fire image interval ("yyyy-mm-dd")
-post_T2: end of pre-fire image interval ("yyyy-mm-dd")
+Prepare fire perimeter shapefile. Ensure that the shapefile contains 5 TEXT fields: \
+Fire_NUMBE: firenumber or some unique identifier \ 
+pre_T1: start of pre-fire image interval ("yyyy-mm-dd") \
+pre_T2: end of pre-fire image interval ("yyyy-mm-dd") \ 
+post_T1: start of post-fire image interval ("yyyy-mm-dd") \
+post_T2: end of pre-fire image interval ("yyyy-mm-dd") \
 
 You can change the field names if you like, just make sure that you update lines 42 - 47 in main_PartB.py
 
