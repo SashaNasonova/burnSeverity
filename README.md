@@ -47,5 +47,6 @@ To run:
 
 ## Part C
 Script to filter, smooth, vectorize and save as a geodatabase.  
-Edit lines 48 - 51. 
+Edit lines 48 - 51.  
+Copy and paste entire script into the Python window in ArcPro/ArcMap. 
 
