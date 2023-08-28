@@ -1,0 +1,53 @@
+---
+title: "Burn Severity Mapping"
+subtitle: "Forest Analysis and Inventory Branch, Ministry of Forests"
+author: "Sasha Nasonova (sasha.nasonova@gov.bc.ca)"
+date: "2023-04-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Background
+Burn severity mapping is done using either Landsat or Sentinel-2 satellite imagery to classify burned areas
+into four severity classes (unburned, low, medium, and high). 
+
+- Pre-fire imagery is collected up to 2 years before the the fire occured (between June 1 and September 30)
+- Post-fire imagery is collected a year after the fire (June 1 - September 30)
+- Every effort is made to use cloud, shadow, smoke and snow free imagery
+- Potential sources of error include: sporadic patches of snow and cloud cover, topographic shadow,
+underestimated fire severity in grassland ecosystems (i.e. if pre-fire imagery contains dry/brown grass), seasonal
+variability (i.e. pre- and post-fire imagery acquired at different points in the growing season).
+
+## Methodology
+
+- Select suitable pre- and post-fire imagery or create a cloud/snow/smoke-free composite from multiple images
+- Calculate normalized burn severity ratio (NBR) for pre- and post-fire images
+- Calculate difference NBR (dNBR) where dNBR = pre NBR – post NBR
+- Apply a scaling equation
+- Apply BARC thresholds and create a 4-class image (unburned, low severity, medium severity, and high severity)
+- Apply region-based filters to reduce noise
+- Confirm burn severity analysis results
+- Produce a vector dataset and apply Euclidian distance smoothing
+- Create PDF maps
+
+## Code Structure
+
+Scripts
+
+- 1_gee.py
+- 2_mosaicTiles.py
+- 
+- 4_qa.py
+- 5_barcFilter.py
+- 6_getSceneIds.py
+- 7_toVector.py
+
+Part A: Prepare vector file 
+Part B: Run 1, 2, 3, 4
+Part C: QA, rerun if necessary
+Part D: Run 6 and 7
+
+

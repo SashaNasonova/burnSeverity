@@ -1,0 +1,2 @@
+# burnSeverity
+ Burn Severity mapping
