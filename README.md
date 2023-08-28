@@ -45,6 +45,8 @@ To run:
 1. In Anaconda Prompt active the gee environment
 2. Run script (example command): python C:\Dev\git\burnSeverity\main_PartB.py
 
+Please use the test data to get started. The shapefile is already formated and filled out with the correct dates.
+
 ## Part C
 Script to filter, smooth, vectorize and save as a geodatabase.  
 Edit lines 48 - 51.  
