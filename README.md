@@ -12,11 +12,11 @@ Part D - Map Generation
 
 Methodology: https://catalogue.data.gov.bc.ca/dataset/fire-burn-severity-same-year
 
-### Installation
+## Installation
 Please follow the instruction outlined here: https://github.com/SashaNasonova/geeMosaics. These scripts require the gee and geemap packages as well as gdal.
 Installing gdal can be a huge pain. 
 
-### Part A
+## Part A
 Prepare fire perimeter shapefile. Ensure that the shapefile contains 5 TEXT fields:  
 Fire_NUMBE: firenumber or some unique identifier   
 pre_T1: start of pre-fire image interval ("yyyy-mm-dd")  
