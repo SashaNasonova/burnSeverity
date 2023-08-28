@@ -39,5 +39,11 @@ override = False
 Override can be used if you already know which image dates you want to use. The script will accept a dictionary of pre- and post-fire image dates along
 with the sensor (S2, L8 or L9). It can also be used for reruns if the first attempt isn't satisfactory.
 
+To run:
+1. In Anaconda Prompt active the gee environment
+2. Run script (example command): python C:\Dev\git\burnSeverity\main_PartB.py
+
 ## Part C
-Script to filter, smooth, vectorize and save as a geodatabase. 
+Script to filter, smooth, vectorize and save as a geodatabase.  
+Edit lines 48 - 51. 
+
