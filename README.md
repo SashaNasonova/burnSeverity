@@ -10,6 +10,8 @@ Part B - Burn Severity Product Generation (barc, quicklooks and qa powerpoint)
 Part C - Filter and Export  
 Part D - Map Generation  
 
+Methodology: https://catalogue.data.gov.bc.ca/dataset/fire-burn-severity-same-year
+
 ### Installation
 Please follow the instruction outlined here: https://github.com/SashaNasonova/geeMosaics. These scripts require the gee and geemap packages as well as gdal.
 Installing gdal can be a huge pain. 
