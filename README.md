@@ -30,9 +30,11 @@ Change lines 33 - 35 to define root folder and location of the perimeter shapefi
 Review/change lines 42-47 to match the field names in the shapefile created in Part A  
 Select whether to export alternates (quicklook images of all available images), export data (NBR, dNBR, dNBR_scaled), or override  
 Default is:
-    export_alt = True
-    export_data = False
-    override = False
+```
+export_alt = True
+export_data = False
+override = False
+```
 
 Override can be used if you already know which image dates you want to use. The script will accept a dictionary of pre- and post-fire image dates along
 with the sensor (S2, L8 or L9). It can also be used for reruns if the first attempt isn't satisfactory.
