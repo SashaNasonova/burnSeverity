@@ -216,7 +216,7 @@ arcpy.AddField_management(gdb_name, 'PRE_FIRE_IMAGE_DATE', 'DATE')
 arcpy.AddField_management(gdb_name, 'POST_FIRE_IMAGE', 'TEXT')
 arcpy.AddField_management(gdb_name, 'POST_FIRE_IMAGE_DATE', 'DATE')
 arcpy.AddField_management(gdb_name, 'COMMENTS', 'TEXT')
-arcpy.AddField_management(gdb_name, 'gridcode', 'SHORT')
+arcpy.AddField_management(gdb_name, 'gridcode', 'SHORT') #TODO: remove
    
 simplify_fc_list = arcpy.ListFeatureClasses('temp*barc_simplify')
 print(simplify_fc_list)
