@@ -30,8 +30,8 @@ import logging
 import traceback
 
 ## Define inputs
-root = r"C:\Data\Burn_Severity\same_year_2023\K52318" # root folder
-fires_shp = os.path.join(root,'vectors','K52318_Aug28.shp')
+root = r"E:\burnSeverity\one_year_later_2022" # root folder
+fires_shp = os.path.join(root,'vectors','WHSE_LAND_AND_NATURAL_RESOURCE_PROT_HISTORICAL_FIRE_POLYS_SP_2022_gt100ha_wdates_S2.shp')
 outpath = os.path.join(root,'output') #root/output
 
 ## Define datatype 
@@ -59,7 +59,15 @@ override = False #True or False
 if override:
     export_alt = False #don't export alternates
     print('Override selected')
-    override = dict(G80223 = {'pre_mosaic': '2022-08-16', 'post_mosaic': '2023-08-13','sensor':'S2'})
+    override = dict(C31143 = {'pre_mosaic': '2022-08-08', 'post_mosaic': '2023-08-28','sensor':'S2'},
+                    G11293 = {'pre_mosaic': '2022-08-09', 'post_mosaic': '2023-09-10','sensor':'S2'},
+                    G41511 = {'pre_mosaic': '2022-08-09', 'post_mosaic': '2023-09-03','sensor':'S2'},
+                    G41569 = {'pre_mosaic': '2022-08-09', 'post_mosaic': '2023-08-16','sensor':'S2'},
+                    G90709 = {'pre_mosaic': '2022-08-09', 'post_mosaic': '2023-08-27','sensor':'S2'},
+                    N22240 = {'pre_mosaic': '2022-08-07', 'post_mosaic': '2023-08-27','sensor':'S2'},
+                    N41861 = {'pre_mosaic': '2022-08-12', 'post_mosaic': '2023-09-09','sensor':'S2'},
+                    N42216 = {'pre_mosaic': '2022-08-15', 'post_mosaic': '2023-09-09','sensor':'S2'},
+                    R21234 = {'pre_mosaic': '2022-08-09', 'post_mosaic': '2023-08-17','sensor':'S2'})
     print(override)
     
 bc_boundary = r"C:\Data\Datasets\BC_Boundary_Terrestrial_gcs_simplify.shp"
@@ -116,15 +124,33 @@ pptpath = os.path.join(qcdir,'qc-ppt.pptx')
 if not os.path.exists(pptpath):
     create_ppt(pptpath)
 
+#fireslist = ['C52512'] #debug
+
 ### For each fire run burn severity mapping, mosaic, and create quicklook 
 for firenumber in fireslist:
     try:
-        if override:
-            print('Overriding, deleting previous outdir')
-            #delete qa and outdir folders for the fire, keep alt
-            #shutil.rmtree(os.path.join(qcdir,firenumber))
-            shutil.rmtree(os.path.join(outdir,firenumber))
-            
+        print(firenumber)
+        out = os.path.join(outdir,firenumber)
+        if os.path.exists(out):
+            shutil.rmtree(out)
+            print('Deleted previous outdir')
+        
+        #Create QC folder
+        qcdirfirenum = os.path.join(qcdir,firenumber)
+        if os.path.exists(qcdirfirenum):
+            shutil.rmtree(qcdirfirenum)
+            os.makedirs(qcdirfirenum)
+            print('Deleted previous qc folder')
+        else:
+            os.makedirs(qcdirfirenum)
+        
+        
+        if export_alt:
+            alt_folder = os.path.join(altdir,firenumber)
+            if os.path.exists(alt_folder):
+                shutil.rmtree(alt_folder)
+                print('Deleted previous altdir')
+    
         #Load in shapefile
         poly_df = fires_df[fires_df[fn] == firenumber]
         outshp = os.path.join(root,'vectors',firenumber+'_temp.shp')
@@ -132,12 +158,13 @@ for firenumber in fireslist:
         poly = geemap.shp_to_ee(outshp)
         
         #Run BARC
-        barc_path,pre_sw_8bit,post_sw_8bit,pre_tc_8bit,post_tc_8bit = barc(fires_df,firenumber,outdir,poly,opt,proc,altdir)
+        barc_path,pre_sw_8bit,post_sw_8bit,pre_tc_8bit,post_tc_8bit,col_list = barc(fires_df,firenumber,outdir,poly,opt,proc,altdir)
         
-        #Create QC folder
-        qcdirfirenum = os.path.join(qcdir,firenumber)
-        if not os.path.exists(qcdirfirenum):
-                os.makedirs(qcdirfirenum)
+        print(barc_path)
+        print(pre_sw_8bit)
+        print(post_sw_8bit)
+        print(pre_tc_8bit)
+        print(post_tc_8bit)
         
         #Generate quicklook
         #truecolor
@@ -178,8 +205,11 @@ for firenumber in fireslist:
         add_slide(pptpath,pre_sw_ql,post_sw_ql,barc_ql,map_ql,df)
         
         #Create alternate quicklooks and powerpoints
-        if export_alt:
+        if export_alt:            
             print('Exporting alternates')
+            ##TODO: export alternates here instead
+            export_alternates(alt_folder,col_list[0],col_list[1],dattype,fires_df,poly,opt,firenumber)
+            
             #Create alt folder
             altdirpre = os.path.join(altdir,firenumber,'pre_png')
             if not os.path.exists(altdirpre):
@@ -213,6 +243,11 @@ for firenumber in fireslist:
     except Exception as e:
         failed.append(firenumber)
         traceback.print_exc()
+        err = ''.join(traceback.format_exc())
+        params = os.path.join(outdir,firenumber,'errors.txt')
+        with open(params, 'w') as f:
+             f.write(f'\n{err}')
+            
         pass
 
 # How many failed?

@@ -45,13 +45,12 @@ def getfiles(d,ext):
     return(paths)     
 
 
-root = r"C:\Data\Burn_Severity\same_year_2023\K52318" # root folder
-dattype = 'S2' #L5,L7,L8,L9,S2
+root = r"E:\bcts" # root folder
 basename = 'provincial_burn_severity_interim'
 fire_year = '2023'
 
 ##############################################################################
-outpath = os.path.join(root,'output',dattype) #root/output
+outpath = os.path.join(root,'export','data') #root/export/data
 firelist = os.listdir(outpath)
 
 filtered_path = os.path.join(root,'export','filtered')
@@ -64,7 +63,7 @@ arcpy.env.overwriteOutput = True
 
 for firenumber in firelist:
     barc_path = os.path.join(outpath,firenumber,'barc')
-    i = getfiles(barc_path,'.tif')[0]
+    i = getfiles(barc_path,'_clip.tif')[0]
     out_name = Path(i).stem + '_filtered.tif'
     out_raster = os.path.join(filtered_path,out_name)
     barc_filter(i,out_raster)
@@ -137,7 +136,7 @@ for barc_tif in barc_list:
     out_fc = output_gdb + "\\temp_" + fire_number + "_barc_simplify"
     arcpy.conversion.RasterToPolygon(barc_tif, out_fc, "SIMPLIFY", "VALUE", "SINGLE_OUTER_PART", 10000)
     print('    - simplified polygons created')
- 
+    
     #FIRE_NUMBER
     f = 'FIRE_NUMBER'
     arcpy.AddField_management(out_fc, f, "TEXT")
@@ -151,7 +150,7 @@ for barc_tif in barc_list:
     print('    - added fire_year to feature class')
     
     #open json
-    metadata_loc = os.path.join(root,'output',dattype,fire_number,'search_params.json')
+    metadata_loc = os.path.join(root,'export','data',fire_number,'search_params.json')
     with open(metadata_loc, 'r') as json_file:
         data_dict = json.load(json_file)
     
