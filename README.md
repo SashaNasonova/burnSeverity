@@ -1,8 +1,6 @@
 # burnSeverity
 
-VERY MUCH STILL IN PROGRESS!
-
-Burn Severity Mapping with spaceborne multispectral imagery from Sentinel-2 MSI and Landsat-8/9 OLI Sensors.
+Burn Severity Mapping with spaceborne multispectral imagery from Sentinel-2 MSI and Landsat-8/9 OLI sensors.
 The process has been broken down into 4 parts:  
     
 Part A - Prepare file perimeter vector file  
