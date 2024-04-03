@@ -1,8 +1,6 @@
 # burnSeverity
 
-VERY MUCH STILL IN PROGRESS!
-
-Burn Severity Mapping with spaceborne multispectral imagery from Sentinel-2 MSI and Landsat-8/9 OLI Sensors.
+Burn Severity Mapping with spaceborne multispectral imagery from Sentinel-2 MSI and Landsat-8/9 OLI sensors.
 The process has been broken down into 4 parts:  
     
 Part A - Prepare file perimeter vector file  
@@ -40,7 +38,6 @@ override = False
 
 Override can be used if you already know which image dates you want to use. The script will accept a dictionary of pre- and post-fire image dates along
 with the sensor (S2, L8 or L9). It can also be used for reruns with the help of quicklooks in the alt folder if the first attempt isn't satisfactory.
-(NOTE: override may not be functioning correctly as of August 28, 2023). 
 
 To run:
 1. In Anaconda Prompt activate the gee environment
