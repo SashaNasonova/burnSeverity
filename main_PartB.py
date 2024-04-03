@@ -20,7 +20,7 @@ Especially pre_T1, pre_T2, post_T1, and post_T2
 code_loc = r'C:\Dev\git\burnSeverity'
 
 from pathlib import Path
-import os, shutil
+import os, shutil, pickle
 os.chdir(code_loc)
 
 from burnsev_gee import * 
@@ -29,13 +29,24 @@ from burnsev_ql import *
 import logging
 import traceback
 
+import sys
+
+## Check if there are sys arguments
+if len(sys.argv) > 1:
+    fires_poly = sys.argv[1]
+    dattype = sys.argv[2]
+    root = sys.argv[3]
+else:
+    fires_poly = 'firePerims_gteq100ha_01Nov2023_clean.shp'
+    dattype = 'S2' #L5,L7,L8,L9,S2
+    root = r"E:\burnSeverity\for_jaya" # root folder
+
+
 ## Define inputs
-root = r"E:\burnSeverity\one_year_later_2022" # root folder
-fires_shp = os.path.join(root,'vectors','WHSE_LAND_AND_NATURAL_RESOURCE_PROT_HISTORICAL_FIRE_POLYS_SP_2022_gt100ha_wdates_S2.shp')
+fires_shp = os.path.join(root,'vectors',fires_poly)
 outpath = os.path.join(root,'output') #root/output
 
-## Define datatype 
-dattype = 'S2' #L5,L7,L8,L9,S2
+## Define proc type 
 proc ='SR'
 
 ## Define shapefile fields
@@ -46,28 +57,29 @@ postT1 = 'post_T1'
 postT2 = 'post_T2'
 areaha = 'FIRE_SIZE_'
 
+##debug?
+debug = False
+debug_list = ['R10070']
+
 ## Export alternate quicklooks?
-export_alt = True
+export_alt = False
+preflag = False #export pre-image alternates
+postflag = False #export post-image alternates 
 
 ## Export data?
-export_data = False
+export_data = True
 
 ## Override? 
-override = False #True or False
+override = True #True or False
 
 ## Optional - override dictionary
 if override:
     export_alt = False #don't export alternates
     print('Override selected')
-    override = dict(C31143 = {'pre_mosaic': '2022-08-08', 'post_mosaic': '2023-08-28','sensor':'S2'},
-                    G11293 = {'pre_mosaic': '2022-08-09', 'post_mosaic': '2023-09-10','sensor':'S2'},
-                    G41511 = {'pre_mosaic': '2022-08-09', 'post_mosaic': '2023-09-03','sensor':'S2'},
-                    G41569 = {'pre_mosaic': '2022-08-09', 'post_mosaic': '2023-08-16','sensor':'S2'},
-                    G90709 = {'pre_mosaic': '2022-08-09', 'post_mosaic': '2023-08-27','sensor':'S2'},
-                    N22240 = {'pre_mosaic': '2022-08-07', 'post_mosaic': '2023-08-27','sensor':'S2'},
-                    N41861 = {'pre_mosaic': '2022-08-12', 'post_mosaic': '2023-09-09','sensor':'S2'},
-                    N42216 = {'pre_mosaic': '2022-08-15', 'post_mosaic': '2023-09-09','sensor':'S2'},
-                    R21234 = {'pre_mosaic': '2022-08-09', 'post_mosaic': '2023-08-17','sensor':'S2'})
+    override = dict(G41149 = {'pre_mosaic': '2022-08-09', 'post_mosaic': '2023-09-10','sensor':'S2'})
+    # p = r'E:\burnSeverity\same_year_2023_Run1_v2\QC\s2_rerun_1.pkl'
+    # with open(p, 'rb') as f:
+    #     override = pickle.load(f)
     print(override)
     
 bc_boundary = r"C:\Data\Datasets\BC_Boundary_Terrestrial_gcs_simplify.shp"
@@ -114,6 +126,8 @@ if override:
     ### Use pre-defined override dictionary
     fireslist = list(override.keys())
     fireslist.sort()
+elif debug:
+    fireslist = debug_list  
 else:
     fireslist = fires_df[fn].tolist()
     fireslist.sort()
@@ -123,8 +137,6 @@ pptpath = os.path.join(qcdir,'qc-ppt.pptx')
 
 if not os.path.exists(pptpath):
     create_ppt(pptpath)
-
-#fireslist = ['C52512'] #debug
 
 ### For each fire run burn severity mapping, mosaic, and create quicklook 
 for firenumber in fireslist:
@@ -193,7 +205,13 @@ for firenumber in fireslist:
         #add location map
         name = firenumber + '_locmap.png'
         map_ql = os.path.join(qcdir,firenumber,name)
+      
         fire_perim = os.path.join(root,'vectors',firenumber+'_temp_gcs.shp')
+        if os.path.isfile(fire_perim):
+            pass
+        else:
+            fire_perim = os.path.join(root,'vectors',firenumber+'_temp.shp')
+        
         inset_map(bc_boundary,fire_perim,map_ql)
         
         #add stats table
@@ -208,7 +226,7 @@ for firenumber in fireslist:
         if export_alt:            
             print('Exporting alternates')
             ##TODO: export alternates here instead
-            export_alternates(alt_folder,col_list[0],col_list[1],dattype,fires_df,poly,opt,firenumber)
+            export_alternates(alt_folder,col_list[0],col_list[1],dattype,fires_df,poly,opt,firenumber,preflag,postflag)
             
             #Create alt folder
             altdirpre = os.path.join(altdir,firenumber,'pre_png')
@@ -239,6 +257,26 @@ for firenumber in fireslist:
             create_ppt(pptpath_alt)
             ##add slides
             add_slides_batch(altdirpost,pptpath_alt)
+            
+            ### check for temp shp files and delete
+            print('deleting temp shapefiles')
+            shp1 = os.path.join(root,'vectors',firenumber+'_temp_gcs.shp')
+            if os.path.isfile(shp1):
+                os.remove(os.path.join(root,'vectors',firenumber+'_temp_gcs.shp'))
+                os.remove(os.path.join(root,'vectors',firenumber+'_temp_gcs.cpg'))
+                os.remove(os.path.join(root,'vectors',firenumber+'_temp_gcs.dbf'))
+                os.remove(os.path.join(root,'vectors',firenumber+'_temp_gcs.prj'))
+                os.remove(os.path.join(root,'vectors',firenumber+'_temp_gcs.shx'))
+                
+            
+            shp2 = os.path.join(root,'vectors',firenumber+'_temp.shp')
+            if os.path.isfile(shp2):    
+                #delete shp all files
+                os.remove(os.path.join(root,'vectors',firenumber+'_temp.shp'))
+                os.remove(os.path.join(root,'vectors',firenumber+'_temp.cpg'))
+                os.remove(os.path.join(root,'vectors',firenumber+'_temp.dbf'))
+                os.remove(os.path.join(root,'vectors',firenumber+'_temp.prj'))
+                os.remove(os.path.join(root,'vectors',firenumber+'_temp.shx'))
     
     except Exception as e:
         failed.append(firenumber)
@@ -247,6 +285,25 @@ for firenumber in fireslist:
         params = os.path.join(outdir,firenumber,'errors.txt')
         with open(params, 'w') as f:
              f.write(f'\n{err}')
+        
+        ### check for temp shp files and delete
+        shp1 = os.path.join(root,'vectors',firenumber+'_temp_gcs.shp')
+        if os.path.isfile(shp1):
+            os.remove(os.path.join(root,'vectors',firenumber+'_temp_gcs.shp'))
+            os.remove(os.path.join(root,'vectors',firenumber+'_temp_gcs.cpg'))
+            os.remove(os.path.join(root,'vectors',firenumber+'_temp_gcs.dbf'))
+            os.remove(os.path.join(root,'vectors',firenumber+'_temp_gcs.prj'))
+            os.remove(os.path.join(root,'vectors',firenumber+'_temp_gcs.shx'))
+            
+        
+        shp2 = os.path.join(root,'vectors',firenumber+'_temp.shp')
+        if os.path.isfile(shp2):    
+            #delete shp all files
+            os.remove(os.path.join(root,'vectors',firenumber+'_temp.shp'))
+            os.remove(os.path.join(root,'vectors',firenumber+'_temp.cpg'))
+            os.remove(os.path.join(root,'vectors',firenumber+'_temp.dbf'))
+            os.remove(os.path.join(root,'vectors',firenumber+'_temp.prj'))
+            os.remove(os.path.join(root,'vectors',firenumber+'_temp.shx'))
             
         pass
 

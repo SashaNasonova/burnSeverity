@@ -121,6 +121,8 @@ def ql_barc(outshp,barcpath,imgpath,outpath):
     
     plt.savefig(outpath, bbox_inches='tight', dpi=300)
     
+    #plt.savefig(outpath_pdf, format="pdf", bbox_inches="tight")
+    
     plt.close()
     src = None
     src1 = None
@@ -154,10 +156,21 @@ def add_slide(pptpath,i,j,k,l,df):
     slide.shapes.add_picture(
         j, left=Cm(12.78), top=Cm(8.2), width=Cm(12.24), height=None
     )
+    
+    #get image height
+    picture = slide.shapes[1] #second shape pre-img, first is the title
+    height_cm = picture.height.cm
+    #print(height_cm)
+    
     #Third image (barc)
     slide.shapes.add_picture(
-        k, left=Cm(25.02), top=Cm(8.2), width=Cm(12.24), height=None
+        k, left=Cm(25.02), top=Cm(8.2), width=None, height=Cm(height_cm)
     )
+    
+    # #Third image (barc)
+    # slide.shapes.add_picture(
+    #     k, left=Cm(25.02), top=Cm(8.2), width=Cm(12.24), height=None
+    # )
     
     #Fourth image (location map)
     slide.shapes.add_picture(

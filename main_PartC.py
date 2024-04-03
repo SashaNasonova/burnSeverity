@@ -37,18 +37,21 @@ def barc_filter(reclassed_raster,out_raster):
 	arcpy.gp.SetNull_sa(region_grouped_raster, region_grouped_raster, nulled_raster, "COUNT < 10")
 	arcpy.gp.Nibble_sa(reclassed_raster, nulled_raster, out_raster, "DATA_ONLY")
 
+#changed this not to grab clipped file
 def getfiles(d,ext):
     paths = []
     for file in os.listdir(d):
+        #if file.endswith(ext) and not file.endswith('_clip.tif'):
         if file.endswith(ext):
             paths.append(os.path.join(d, file))
     return(paths)     
 
 
-root = r"E:\bcts" # root folder
-basename = 'provincial_burn_severity_historical'
-fire_year = '2022'
+root = r"E:\burnSeverity\one_year_later_2014_lakestsa" # root folder
+basename = 'lakestsa_burn_severity_historical'
+fire_year = '2014'
 
+#perims = r"E:\burnSeverity\one_year_later_2022_v2\vectors\firePerims_2022_gteq100ha.shp"
 ##############################################################################
 outpath = os.path.join(root,'export','data') #root/export/data
 firelist = os.listdir(outpath)
@@ -63,7 +66,7 @@ arcpy.env.overwriteOutput = True
 
 for firenumber in firelist:
     barc_path = os.path.join(outpath,firenumber,'barc')
-    i = getfiles(barc_path,'_clip.tif')[0]
+    i = getfiles(barc_path,'.tif')[0]
     out_name = Path(i).stem + '_filtered.tif'
     out_raster = os.path.join(filtered_path,out_name)
     barc_filter(i,out_raster)
@@ -249,6 +252,18 @@ arcpy.management.CalculateGeometryAttributes(layer, "AREA_HA AREA", '', "HECTARE
 arcpy.management.CalculateGeometryAttributes(layer, "FEATURE_AREA_SQM AREA", '', "SQUARE_METERS", proj, "SAME_AS_INPUT")
 arcpy.management.CalculateGeometryAttributes(layer, "FEATURE_LENGTH_M PERIMETER_LENGTH", "METERS", '', proj, "SAME_AS_INPUT")
 
+# gdb_clip = layer+'_clip'
+# #clip to boundaries
+# arcpy.analysis.PairwiseClip(
+#     in_features=layer,
+#     clip_features=perims,
+#     out_feature_class=gdb_clip,
+#     cluster_tolerance=None
+# )
+
+#arcpy.management.CalculateGeometryAttributes(gdb_clip, "AREA_HA AREA", '', "HECTARES", proj, "SAME_AS_INPUT")
+
+#recalculate AREA_HA field
 print('Creating final geodatabase')
 
 #copy final layer to a new database
@@ -259,7 +274,8 @@ output_gdb_final = os.path.join(out_gdb_dir, gdb_name_final+'.gdb')
 if not arcpy.Exists(output_gdb_final): 
     arcpy.CreateFileGDB_management(out_gdb_dir,gdb_name_final+'.gdb')
     
-infile = os.path.join(output_gdb,gdb_name)
+#infile = os.path.join(output_gdb,gdb_clip)
+infile = layer
 outfile = os.path.join(output_gdb_final,gdb_name_final)
 
 arcpy.management.CopyFeatures(infile,outfile)

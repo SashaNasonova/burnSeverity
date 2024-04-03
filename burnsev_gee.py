@@ -15,7 +15,7 @@ from osgeo import gdal
 from osgeo.gdalconst import GA_Update
 import sys
 
-def export_alternates(folder,pre_mosaic_col,post_mosaic_col,dattype,fires_df,poly,opt,firenumber):
+def export_alternates(folder,pre_mosaic_col,post_mosaic_col,dattype,fires_df,poly,opt,firenumber,preflag,postflag):
     def grid_footprint(footprint,nx,ny):
         from shapely.geometry import Polygon, LineString, MultiPolygon
         from shapely.ops import split
@@ -69,103 +69,104 @@ def export_alternates(folder,pre_mosaic_col,post_mosaic_col,dattype,fires_df,pol
     footprint = poly.geometry().bounds().getInfo()
     grids = grid_footprint(footprint,n,n) #3,3 works for a fire that's ~90 000 ha large, if larger, increase the number of tiles
     
-    ## Export all pre qls
-    pre_tc_8bit = os.path.join(folder,'pre_truecolor_8bit_alt')
-    if not os.path.exists(pre_tc_8bit):
-            os.makedirs(pre_tc_8bit)
-    
-    pre_mosaic_col_list = pre_mosaic_col.toList(1000)
-    
-    if pre_mosaic_col.size().getInfo() == 0:
-        print('No pre alternatives')
-        pass
-    else:
-        for i in range(0,pre_mosaic_col_list.length().getInfo()):
-            pre_img = ee.Image(pre_mosaic_col_list.get(i))
-            pre_date = pre_img.get("system:index").getInfo()
-            
-            if dattype.startswith('S2'):
-                pre_img_export = pre_img.multiply(0.0001)
-            elif (dattype == 'L8') | (dattype == 'L9'):
-                pre_img_export = apply_scale_factors(pre_img)
-            elif (dattype == 'L5') | (dattype == 'L7'):
-                pre_img_export = apply_scale_factors(pre_img)
-            else:
-                pass
+    if preflag:
+        ## Export all pre qls
+        pre_tc_8bit = os.path.join(folder,'pre_truecolor_8bit_alt')
+        if not os.path.exists(pre_tc_8bit):
+                os.makedirs(pre_tc_8bit)
+        
+        pre_mosaic_col_list = pre_mosaic_col.toList(1000)
+        
+        if pre_mosaic_col.size().getInfo() == 0:
+            print('No pre alternatives')
+            pass
+        else:
+            for i in range(0,pre_mosaic_col_list.length().getInfo()):
+                pre_img = ee.Image(pre_mosaic_col_list.get(i))
+                pre_date = pre_img.get("system:index").getInfo()
                 
-            pre_img_list = []
-            for i in range(0,len(grids)):
-                roi = grids[i]
-                filename = os.path.join(pre_tc_8bit, dattype + '_' + pre_date + '_truecolor_pre_8bit_alt_' + str(i) + '.tif')
-                pre_img_list.append(filename)
                 if dattype.startswith('S2'):
-                    viz = {'bands': ['B4', 'B3', 'B2'], 'min': 0, 'max':0.3,'gamma':1.5}
-                    geemap.ee_export_image(pre_img_export.clip(roi).visualize(**viz), filename=filename, scale=10, file_per_band=False,crs='EPSG:3005')
-                elif (dattype == 'L8') | (dattype == 'L9'): 
-                    viz = {'bands': ['SR_B4', 'SR_B3', 'SR_B2'], 'min': 0, 'max':0.3,'gamma':1.5}
-                    geemap.ee_export_image(pre_img_export.clip(roi).visualize(**viz), filename=filename, scale=30, file_per_band=False,crs='EPSG:3005')
+                    pre_img_export = pre_img.multiply(0.0001)
+                elif (dattype == 'L8') | (dattype == 'L9'):
+                    pre_img_export = apply_scale_factors(pre_img)
                 elif (dattype == 'L5') | (dattype == 'L7'):
-                    viz = {'bands': ['SR_B3','SR_B2','SR_B1'], 'min': 0, 'max':0.3,'gamma':1.5}
-                    geemap.ee_export_image(pre_img_export.clip(roi).visualize(**viz), filename=filename, scale=30, file_per_band=False,crs='EPSG:3005')
+                    pre_img_export = apply_scale_factors(pre_img)
                 else:
                     pass
-            
-            #mosaic 
-            outfilename = dattype + '_' + pre_date + '_truecolor_pre_8bit_alt' + '.tif'
-            out = os.path.join(pre_tc_8bit,outfilename)
-            gdal.Warp(out,pre_img_list)
-            for file in pre_img_list: os.remove(file) #delete tiles
-        
-    
-    ## Export all post qls
-    post_tc_8bit = os.path.join(folder,'post_truecolor_8bit_alt')
-    if not os.path.exists(post_tc_8bit):
-            os.makedirs(post_tc_8bit)
-   
-    post_mosaic_col_list = post_mosaic_col.toList(1000)
-    
-    if post_mosaic_col.size().getInfo() == 0:
-        print('No post alternatives')
-        pass
-    
-    else:
-        for i in range(0,post_mosaic_col_list.length().getInfo()):
-            post_img = ee.Image(post_mosaic_col_list.get(i))
-            post_date = post_img.get("system:index").getInfo()
-            
-            if dattype.startswith('S2'):
-                post_img_export = post_img.multiply(0.0001)
-            elif (dattype == 'L8') | (dattype == 'L9'):
-                post_img_export = apply_scale_factors(post_img)
-            elif (dattype == 'L5') | (dattype == 'L7'):
-                post_img_export = apply_scale_factors(post_img)
-            else:
-                pass
-
-            post_img_list = []
-            for i in range(0,len(grids)):
-                roi = grids[i]
-                filename = os.path.join(post_tc_8bit, dattype + '_' + post_date + '_truecolor_post_8bit_alt_' + str(i) + '.tif')
+                    
+                pre_img_list = []
+                for i in range(0,len(grids)):
+                    roi = grids[i]
+                    filename = os.path.join(pre_tc_8bit, dattype + '_' + pre_date + '_truecolor_pre_8bit_alt_' + str(i) + '.tif')
+                    pre_img_list.append(filename)
+                    if dattype.startswith('S2'):
+                        viz = {'bands': ['B4', 'B3', 'B2'], 'min': 0, 'max':0.3,'gamma':1.5}
+                        geemap.ee_export_image(pre_img_export.clip(roi).visualize(**viz), filename=filename, scale=10, file_per_band=False,crs='EPSG:3005')
+                    elif (dattype == 'L8') | (dattype == 'L9'): 
+                        viz = {'bands': ['SR_B4', 'SR_B3', 'SR_B2'], 'min': 0, 'max':0.3,'gamma':1.5}
+                        geemap.ee_export_image(pre_img_export.clip(roi).visualize(**viz), filename=filename, scale=30, file_per_band=False,crs='EPSG:3005')
+                    elif (dattype == 'L5') | (dattype == 'L7'):
+                        viz = {'bands': ['SR_B3','SR_B2','SR_B1'], 'min': 0, 'max':0.3,'gamma':1.5}
+                        geemap.ee_export_image(pre_img_export.clip(roi).visualize(**viz), filename=filename, scale=30, file_per_band=False,crs='EPSG:3005')
+                    else:
+                        pass
                 
-                post_img_list.append(filename)
+                #mosaic 
+                outfilename = dattype + '_' + pre_date + '_truecolor_pre_8bit_alt' + '.tif'
+                out = os.path.join(pre_tc_8bit,outfilename)
+                gdal.Warp(out,pre_img_list)
+                for file in pre_img_list: os.remove(file) #delete tiles
+        
+    if postflag:
+        ## Export all post qls
+        post_tc_8bit = os.path.join(folder,'post_truecolor_8bit_alt')
+        if not os.path.exists(post_tc_8bit):
+                os.makedirs(post_tc_8bit)
+       
+        post_mosaic_col_list = post_mosaic_col.toList(1000)
+        
+        if post_mosaic_col.size().getInfo() == 0:
+            print('No post alternatives')
+            pass
+        
+        else:
+            for i in range(0,post_mosaic_col_list.length().getInfo()):
+                post_img = ee.Image(post_mosaic_col_list.get(i))
+                post_date = post_img.get("system:index").getInfo()
+                
                 if dattype.startswith('S2'):
-                    viz = {'bands': ['B4', 'B3', 'B2'], 'min': 0, 'max':0.3,'gamma':1.5}
-                    geemap.ee_export_image(post_img_export.clip(roi).visualize(**viz), filename=filename, scale=10, file_per_band=False,crs='EPSG:3005')
-                elif (dattype == 'L8') | (dattype == 'L9'): 
-                    viz = {'bands': ['SR_B4', 'SR_B3', 'SR_B2'], 'min': 0, 'max':0.3,'gamma':1.5}
-                    geemap.ee_export_image(post_img_export.clip(roi).visualize(**viz), filename=filename, scale=30, file_per_band=False,crs='EPSG:3005')
+                    post_img_export = post_img.multiply(0.0001)
+                elif (dattype == 'L8') | (dattype == 'L9'):
+                    post_img_export = apply_scale_factors(post_img)
                 elif (dattype == 'L5') | (dattype == 'L7'):
-                    viz = {'bands': ['SR_B3','SR_B2','SR_B1'],'min': 0, 'max':0.3,'gamma':1.5}
-                    geemap.ee_export_image(post_img_export.clip(roi).visualize(**viz), filename=filename, scale=30, file_per_band=False,crs='EPSG:3005')
+                    post_img_export = apply_scale_factors(post_img)
                 else:
                     pass
-        
-            #post truecolor
-            outfilename = dattype + '_' + post_date + '_truecolor_post_8bit_alt' + '.tif'
-            out = os.path.join(post_tc_8bit,outfilename)
-            gdal.Warp(out,post_img_list)
-            for file in post_img_list: os.remove(file)
     
+                post_img_list = []
+                for i in range(0,len(grids)):
+                    roi = grids[i]
+                    filename = os.path.join(post_tc_8bit, dattype + '_' + post_date + '_truecolor_post_8bit_alt_' + str(i) + '.tif')
+                    
+                    post_img_list.append(filename)
+                    if dattype.startswith('S2'):
+                        viz = {'bands': ['B4', 'B3', 'B2'], 'min': 0, 'max':0.3,'gamma':1.5}
+                        geemap.ee_export_image(post_img_export.clip(roi).visualize(**viz), filename=filename, scale=10, file_per_band=False,crs='EPSG:3005')
+                    elif (dattype == 'L8') | (dattype == 'L9'): 
+                        viz = {'bands': ['SR_B4', 'SR_B3', 'SR_B2'], 'min': 0, 'max':0.3,'gamma':1.5}
+                        geemap.ee_export_image(post_img_export.clip(roi).visualize(**viz), filename=filename, scale=30, file_per_band=False,crs='EPSG:3005')
+                    elif (dattype == 'L5') | (dattype == 'L7'):
+                        viz = {'bands': ['SR_B3','SR_B2','SR_B1'],'min': 0, 'max':0.3,'gamma':1.5}
+                        geemap.ee_export_image(post_img_export.clip(roi).visualize(**viz), filename=filename, scale=30, file_per_band=False,crs='EPSG:3005')
+                    else:
+                        pass
+            
+                #post truecolor
+                outfilename = dattype + '_' + post_date + '_truecolor_post_8bit_alt' + '.tif'
+                out = os.path.join(post_tc_8bit,outfilename)
+                gdal.Warp(out,post_img_list)
+                for file in post_img_list: os.remove(file)
+        
     print('Alternates exported')
 
 
@@ -261,13 +262,16 @@ def barc(fires_df,firenumber,outdir,poly,opt,proc,altdir=None):
     #Landsat cloud mask from metadata 
     ## Check this!!!
     def get_cloud(img1):
+        ### Change as of Oct 24, 2023: cloud shadow is too inaccurate, remove
+        ### Though it is picking up topographic shadow. Questions!
         # Bits 3 and 4 are cloud and cloud shadow, respectively.
-        cloudShadowBitMask = (1 << 4)
+        #cloudShadowBitMask = (1 << 4)
         cloudBitMask = (1 << 3)
         # Get the pixel QA band.
         qa = img1.select('QA_PIXEL')
         #set both flags to 1
-        clouds = qa.bitwiseAnd(cloudBitMask).eq(0).And(qa.bitwiseAnd(cloudShadowBitMask).eq(0)).rename('cloudmsk')
+        #clouds = qa.bitwiseAnd(cloudBitMask).eq(0).And(qa.bitwiseAnd(cloudShadowBitMask).eq(0)).rename('cloudmsk')
+        clouds = qa.bitwiseAnd(cloudBitMask).eq(0).rename('cloudmsk')
         return(img1.addBands(clouds))
     
 
@@ -305,8 +309,10 @@ def barc(fires_df,firenumber,outdir,poly,opt,proc,altdir=None):
             print('Selected L8 SR')
     elif dattype == 'L5':
         col = ee.ImageCollection("LANDSAT/LT05/C02/T1_L2")
+        print('Selected L5 SR')
     elif dattype == 'L7':
-        col = ee.ImageCollection("LANDSAT/LE07/C02/T1_L2") 
+        col = ee.ImageCollection("LANDSAT/LE07/C02/T1_L2")
+        print('Selected L7 SR')
     else:
         print('wrong data type selected')
     
@@ -389,16 +395,21 @@ def barc(fires_df,firenumber,outdir,poly,opt,proc,altdir=None):
     # Ask server for mosaic metadata
     mosaic_meta = pre_mosaic_col.getInfo()
     
-    # Classify to get coverage and cloud extent
+    # Classify to get coverage and cloud extent, fix this to check if any bands are equal to 0
     def classify_extent(img1):
         if dattype.startswith('S2'):
-            classes = img1.expression("(B1 !=0) ? 1 "
-                                       ": 0",{'B1': img1.select('B1')}).rename('c').clip(poly)
+            classes = img1.expression("((B2 + B3 + B4) !=0) ? 1 "
+                                       ": 0",{'B2': img1.select('B2'),
+                                              'B3': img1.select('B3'),
+                                              'B4': img1.select('B4')}).rename('c').clip(poly)
         else: 
-            classes = img1.expression("(SR_B1 !=0) ? 1 "
-                                       ": 0",{'SR_B1': img1.select('SR_B1')}).rename('c').clip(poly)
+            classes = img1.expression("((B2 + B3 + B4) !=0) ? 1 "
+                                       ": 0",{'B2': img1.select('SR_B2'),
+                                              'B3': img1.select('SR_B3'),
+                                              'B4': img1.select('SR_B4')}).rename('c').clip(poly)
         return(classes)
     pre_mosaic_extent = pre_mosaic_col.map(classify_extent).toBands()
+    
     
     def classify_cc(img1):
         if dattype.startswith('S2'):
@@ -407,7 +418,7 @@ def barc(fires_df,firenumber,outdir,poly,opt,proc,altdir=None):
         else:
             classes = img1.expression("(cloudmsk == 1) ? 0 "
                                ": 1",{'cloudmsk': img1.select('cloudmsk')}).rename('c').clip(poly)
-        return(classes)
+        return(classes)     
     
     if dattype.startswith('S2'):
         pre_mosaic_cc = pre_mosaic_col.map(classify_cc).toBands()
@@ -454,20 +465,52 @@ def barc(fires_df,firenumber,outdir,poly,opt,proc,altdir=None):
     newnames = [s.rsplit('_')[0] for s in oldnames]
     meta_df_ext.index = newnames
     
+    #get average scene cloud cover and join to mosaic metadata
+    if dattype.startswith('S2'):
+        pre_meta_scenes_cld = pre_meta_scenes.groupby('date')['CLOUDY_PIXEL_PERCENTAGE'].mean()
+        temp = pd.DataFrame(pre_meta_scenes_cld)
+        pre_meta_scenes_cld = temp.rename(columns={'date':'date','CLOUDY_PIXEL_PERCENTAGE':'percent_cc_scene'})
+    else:
+        pre_meta_scenes_cld = pre_meta_scenes.groupby('date')['CLOUD_COVER'].mean()
+        temp = pd.DataFrame(pre_meta_scenes_cld)
+        pre_meta_scenes_cld = temp.rename(columns={'CLOUD_COVER':'percent_cc_scene'})
+    
+    meta_df_ext = meta_df_ext.join(pre_meta_scenes_cld)
+    
     outpath = os.path.join(outfolder,'pre_mosaicMetadata.csv')
     meta_df_ext.to_csv(outpath)
     
     #Finally! Select best pre-mosaic. Coverage >99% and least cloud cover
-    #full_cov = meta_df_ext.loc[(meta_df_ext['percent_coverage'] > 98)]
+    #full_cov = meta_df_ext.loc[(meta_df_ext['percent_coverage'] > 99)]
     full_cov = meta_df_ext.loc[(meta_df_ext['percent_coverage'] == max(meta_df_ext['percent_coverage'])) | (meta_df_ext['percent_coverage'] > 99)]
     
-    if max(meta_df_ext['percent_coverage']) < 90:
-        raise Exception('No pre-fire scenes available with coverage >=90%')
+    # if max(meta_df_ext['percent_coverage']) < 90:
+    #     raise Exception('No pre-fire scenes available with coverage >=90%')
         
-    pre_mosaic_date = full_cov['percent_cc'].idxmin()
+    # #pre_mosaic_date = full_cov['percent_cc'].idxmin()
+    
+    # if min(full_cov['percent_cc']) > 10:
+    #     raise Exception('No pre-fire scenes available with cloud cover <= 10%')
+    
+    #if greater than 90% coverage not available print error and exit 
+    if max(meta_df_ext['percent_coverage']) < 90:
+        if opt['override']:
+            print('Override selected. Warning! Pre-image has less than 90% coverage!')
+            pass
+        else:
+            raise Exception('No post-fire scenes available with coverage >=90%')
     
     if min(full_cov['percent_cc']) > 10:
-        raise Exception('No pre-fire scenes available with cloud cover <= 10%')
+        if opt['override']:
+            print('Override selected. Warning! Pre-image has more than 10% cloud cover!')
+            pass
+        else:
+            raise Exception('No pre-fire scenes available with cloud cover <= 10%')
+    
+    #select by minimum scene cloud cover too
+    x = full_cov[full_cov['percent_cc'] == full_cov['percent_cc'].min()]
+    pre_mosaic_date = x['percent_cc_scene'].idxmin()
+    print(x)
     
     if opt['export_alt']:
         #select only mosaics that have greater >= 90% coverage AND < 20% cloud cover 
@@ -547,6 +590,7 @@ def barc(fires_df,firenumber,outdir,poly,opt,proc,altdir=None):
     
     # Classify to get coverage and cloud extent
     post_mosaic_extent = post_mosaic_col.map(classify_extent).toBands()
+     
     
     if dattype.startswith('S2'):
         post_mosaic_cc = post_mosaic_col.map(classify_cc).toBands()
@@ -592,23 +636,50 @@ def barc(fires_df,firenumber,outdir,poly,opt,proc,altdir=None):
     newnames = [s.rsplit('_')[0] for s in oldnames]
     meta_df_ext.index = newnames
     
+    #get average scene cloud cover and join to mosaic metadata
+    if dattype.startswith('S2'):
+        post_meta_scenes_cld = post_meta_scenes.groupby('date')['CLOUDY_PIXEL_PERCENTAGE'].mean()
+        temp = pd.DataFrame(post_meta_scenes_cld)
+        post_meta_scenes_cld = temp.rename(columns={'date':'date','CLOUDY_PIXEL_PERCENTAGE':'percent_cc_scene'})
+    else:
+        post_meta_scenes_cld = post_meta_scenes.groupby('date')['CLOUD_COVER'].mean()
+        temp = pd.DataFrame(post_meta_scenes_cld)
+        post_meta_scenes_cld = temp.rename(columns={'CLOUD_COVER':'percent_cc_scene'})
+    
+    meta_df_ext = meta_df_ext.join(post_meta_scenes_cld)
+    
     outpath = os.path.join(outfolder,'post_mosaicMetadata.csv')
     meta_df_ext.to_csv(outpath)
     
     #Finally! Select best post-mosaic. Coverage >99% or maximum available coverage, and least cloud cover
     full_cov = meta_df_ext.loc[(meta_df_ext['percent_coverage'] == max(meta_df_ext['percent_coverage'])) | (meta_df_ext['percent_coverage'] > 99)]
-    full_cov.sort_index(inplace=True,ascending=False) #sort descending, to get most recent image
+    #full_cov.sort_index(inplace=True,ascending=False) #sort descending, to get most recent image, instead of getting most recent, now looking for least cloudy with scene meta
     #test = os.path.join(outfolder,'post_mosaicMetadata_fullcov.csv') #debug
     #full_cov.to_csv(test) #debug
     
     #if greater than 90% coverage not available print error and exit 
     if max(meta_df_ext['percent_coverage']) < 90:
-        raise Exception('No post-fire scenes available with coverage >=90%')
+        if opt['override']:
+            print('Override selected. Warning! Post-image has less than 90% coverage!')
+            pass
+        else:
+            raise Exception('No post-fire scenes available with coverage >=90%')
     
     if min(full_cov['percent_cc']) > 10:
-        raise Exception('No post-fire scenes available with cloud cover <= 10%')
+        if opt['override']:
+            print('Override selected. Warning! Post-image has more than 10% cloud cover!')
+            pass
+        else:
+            #raise Exception('No post-fire scenes available with cloud cover <= 10%')
+            print('ignoring cloud cover cut off')
+            pass
     
-    post_mosaic_date = full_cov['percent_cc'].idxmin()
+    #select by minimum scene cloud cover too
+    x = full_cov[full_cov['percent_cc'] == full_cov['percent_cc'].min()]
+    post_mosaic_date = x['percent_cc_scene'].idxmin()
+    print(x)
+    
+    #post_mosaic_date = full_cov['percent_cc'].idxmin()
     
     if opt['export_alt']:
         #select only mosaics that have greater >= 90% coverage AND < 10% cloud cover 
@@ -655,8 +726,12 @@ def barc(fires_df,firenumber,outdir,poly,opt,proc,altdir=None):
         post_img = apply_scale_factors(ee.Image(post_col.toList(1).get(0)))
     
     #clip to boundary
-    pre_img_c = pre_img.clip(poly)
-    post_img_c = post_img.clip(poly)
+    #pre_img_c = pre_img.clip(poly)
+    #post_img_c = post_img.clip(poly)
+    
+    #TODO: remove clipping here 
+    pre_img_c = pre_img
+    post_img_c = post_img
     
     #calculate NBR
     if dattype.startswith('S2'):
@@ -671,14 +746,19 @@ def barc(fires_df,firenumber,outdir,poly,opt,proc,altdir=None):
     dNBR = pre_nbr.subtract(post_nbr).rename('dNBR')
     
     #scale dNBR
-    dNBR_scaled = dNBR.expression('(dNBR * 1000 + 275)/5',{'dNBR': dNBR.select('dNBR')})
-    dNBR_scaled_int = dNBR_scaled.int().rename('dNBR_scaled_int')
+    dNBR_scaled = dNBR.expression('(dNBR * 1000 + 275)/5',{'dNBR': dNBR.select('dNBR')}).rename('dNBR_scaled')
+    #dNBR_scaled_int = dNBR_scaled.int().rename('dNBR_scaled_int')
     
     
-    classes = dNBR_scaled_int.expression("(dNBR_scaled_int > 187) ? 4 "
-                                   ": (dNBR_scaled_int > 109) ? 3 "
-                                   ": (dNBR_scaled_int > 75) ? 2 "
-                                   ": 1",{'dNBR_scaled_int': dNBR_scaled_int.select('dNBR_scaled_int')})
+    # classes = dNBR_scaled_int.expression("(dNBR_scaled_int > 186) ? 4 "
+    #                                 ": (dNBR_scaled_int > 109) ? 3 "
+    #                                 ": (dNBR_scaled_int > 75) ? 2 "
+    #                                 ": 1",{'dNBR_scaled_int': dNBR_scaled_int.select('dNBR_scaled_int')})
+    
+    classes = dNBR_scaled.expression("(dNBR_scaled >= 187) ? 4 "
+                                    ": (dNBR_scaled >= 110) ? 3 "
+                                    ": (dNBR_scaled >= 76) ? 2 "
+                                    ": 1",{'dNBR_scaled': dNBR_scaled.select('dNBR_scaled')})
     
     
     print('Applying cloud mask if necessary')
@@ -693,7 +773,12 @@ def barc(fires_df,firenumber,outdir,poly,opt,proc,altdir=None):
     
     #clip, remap 0 to 9 and set 9 to NoData upon export
     classes_clipped_nodata = classes.clip(poly).remap([0,1,2,3,4],[9,1,2,3,4]) 
-    classes_clipped_export = classes_clipped_nodata.multiply(comb_cloudmsk) #0 is cloudmasked, or unknown
+    
+    mask_clouds = False
+    if mask_clouds:
+        classes_clipped_export = classes_clipped_nodata.multiply(comb_cloudmsk) #0 is cloudmasked, or unknown
+    else:
+        classes_clipped_export = classes_clipped_nodata
     
     #get stats
     #outcsv = os.path.join(outfolder,'barc_percent.csv')
@@ -733,6 +818,10 @@ def barc(fires_df,firenumber,outdir,poly,opt,proc,altdir=None):
     footprint = poly.geometry().bounds().getInfo()
     grids = grid_footprint(footprint,n,n) #3,3 works for a fire that's ~90 000 ha large, if larger, increase the number of tiles
     
+    ##debug export extent image
+    #filename = os.path.join(outfolder,'extent_raster.tif')
+    #geemap.ee_export_image(post_mosaic_extent.clip(footprint), filename=filename, scale=30, file_per_band=False,crs='EPSG:3005')
+    
     for i in range(0,len(grids)):
         roi = grids[i]
         ## Export BARC
@@ -740,7 +829,7 @@ def barc(fires_df,firenumber,outdir,poly,opt,proc,altdir=None):
         if not os.path.exists(barc_folder):
                 os.makedirs(barc_folder)
                 
-        name = 'BARC_' + firenumber + '_' + pre_date + '_' + post_date + '_' + dattype +'_' + str(i) + '.tif'
+        name = 'BARC_' + firenumber + '_' + pre_date + '_' + post_date + '_' + dattype +'_' + str(i) + '_.tif'
         barc_filename = os.path.join(barc_folder,name)
         geemap.ee_export_image(classes_clipped_export.unmask(9).clip(roi), filename=barc_filename, scale=px, file_per_band=False,crs='EPSG:3005')
         ras = gdal.Open(barc_filename,GA_Update)
@@ -966,7 +1055,7 @@ def barc(fires_df,firenumber,outdir,poly,opt,proc,altdir=None):
                     os.makedirs(dNBR_scaled_folder)
             name = 'dNBR_scaled_' + firenumber + '_' + pre_date + '_' + post_date + '_' + dattype + '_' + str(i) + '.tif'
             filename = os.path.join(dNBR_scaled_folder,name)
-            geemap.ee_export_image(dNBR_scaled_int.clip(roi), filename=filename, scale=scale, region=roi, file_per_band=False,crs='EPSG:3005')
+            geemap.ee_export_image(dNBR_scaled.clip(roi), filename=filename, scale=scale, file_per_band=False,crs='EPSG:3005')
             
             ## Export dNBR
             dNBR_folder = os.path.join(outfolder,'dNBR')
@@ -974,7 +1063,7 @@ def barc(fires_df,firenumber,outdir,poly,opt,proc,altdir=None):
                     os.makedirs(dNBR_folder)
             name = 'dNBR_' + firenumber + '_' + pre_date + '_' + post_date + '_' + dattype + '_' + str(i) + '.tif'
             filename = os.path.join(dNBR_folder,name)
-            geemap.ee_export_image(dNBR.clip(roi), filename=filename, scale=scale, region=roi, file_per_band=False,crs='EPSG:3005')
+            geemap.ee_export_image(dNBR.clip(roi), filename=filename, scale=scale,file_per_band=False,crs='EPSG:3005')
 
             
             ## Export pre-NBR
@@ -983,7 +1072,7 @@ def barc(fires_df,firenumber,outdir,poly,opt,proc,altdir=None):
                     os.makedirs(pre_nbr_folder)
             name = 'NBR_' + firenumber + '_' + pre_date + '_' + dattype + '_' + str(i) + '.tif'
             filename = os.path.join(pre_nbr_folder,name)
-            geemap.ee_export_image(pre_nbr.clip(roi), filename=filename, scale=scale, region=roi, file_per_band=False,crs='EPSG:3005')
+            geemap.ee_export_image(pre_nbr.clip(roi), filename=filename, scale=scale,file_per_band=False,crs='EPSG:3005')
             
 
             ## Export post-NBR
@@ -992,7 +1081,73 @@ def barc(fires_df,firenumber,outdir,poly,opt,proc,altdir=None):
                     os.makedirs(post_nbr_folder)
             name = 'NBR_' + firenumber + '_' + post_date + '_' + dattype + '_' + str(i) + '.tif'
             filename = os.path.join(post_nbr_folder,name)
-            geemap.ee_export_image(post_nbr.clip(roi), filename=filename, scale=scale, region=roi, file_per_band=False,crs='EPSG:3005')
+            geemap.ee_export_image(post_nbr.clip(roi), filename=filename, scale=scale,file_per_band=False,crs='EPSG:3005')
+            
+            
+            ## Export pre, all bands (except 60m for S2)
+            
+            if dattype.startswith('S2'):
+                pre_bands_10m = os.path.join(outfolder,'pre_bands_10m')
+                if not os.path.exists(pre_bands_10m):
+                        os.makedirs(pre_bands_10m)
+                        
+                pre_bands_20m = os.path.join(outfolder,'pre_bands_20m')
+                if not os.path.exists(pre_bands_20m):
+                        os.makedirs(pre_bands_20m)
+            elif dattype.startswith('L'):
+                pre_bands_30m = os.path.join(outfolder,'pre_bands_30m')
+                if not os.path.exists(pre_bands_30m):
+                        os.makedirs(pre_bands_30m)
+            else:
+                pass
+
+            
+            if dattype.startswith('S2'):
+                filename = os.path.join(pre_bands_10m, dattype + '_' + pre_date + '_B2-B3-B4-B8_pre_' + str(i) + '.tif')
+                geemap.ee_export_image(pre_img.clip(roi).select(['B2', 'B3', 'B4','B8']), filename=filename, scale=10, file_per_band=False,crs='EPSG:3005')
+                filename = os.path.join(pre_bands_20m, dattype + '_' + pre_date + '_B5-B6-B7-B8A-B11-B12_pre_' + str(i) + '.tif')
+                geemap.ee_export_image(pre_img.clip(roi).select(['B5','B6','B7','B8A','B11','B12']), filename=filename, scale=20, file_per_band=False,crs='EPSG:3005')
+            elif (dattype == 'L8') | (dattype == 'L9'): 
+                #TODO: fix this
+                filename = os.path.join(pre_bands_30m, dattype + '_' + pre_date + '_B1-B2-B3-B4-B5-B6-B7_pre_' + str(i) + '.tif')
+                geemap.ee_export_image(pre_img.clip(roi).select(['SR_B4', 'SR_B3', 'SR_B2']), filename=filename, scale=30, file_per_band=False,crs='EPSG:3005')
+            elif (dattype == 'L5') | (dattype == 'L7'):
+                #TODO: fix this
+                filename = os.path.join(pre_bands_30m, dattype + '_' + pre_date + '_B1-B2-B3-B4-B5-B7_pre_' + str(i) + '.tif')
+                geemap.ee_export_image(pre_img.clip(roi).select(['SR_B3','SR_B2','SR_B1']), filename=filename, scale=30, file_per_band=False,crs='EPSG:3005')
+            else:
+                pass
+            
+            ## Export post, all bands (except 60m for S2)
+            if dattype.startswith('S2'):
+                post_bands_10m = os.path.join(outfolder,'post_bands_10m')
+                if not os.path.exists(post_bands_10m):
+                        os.makedirs(post_bands_10m)
+                        
+                post_bands_20m = os.path.join(outfolder,'post_bands_20m')
+                if not os.path.exists(post_bands_20m):
+                        os.makedirs(post_bands_20m)
+            elif dattype.startswith('L'):
+                post_bands_30m = os.path.join(outfolder,'post_bands_30m')
+                if not os.path.exists(post_bands_30m):
+                        os.makedirs(post_bands_30m)
+            else:
+                pass
+
+            if dattype.startswith('S2'):
+                filename = os.path.join(post_bands_10m, dattype + '_' + post_date + '_B2-B3-B4-B8_post_' + str(i) + '.tif')
+                geemap.ee_export_image(post_img.clip(roi).select(['B2', 'B3', 'B4','B8']), filename=filename, scale=10, file_per_band=False,crs='EPSG:3005')
+                filename = os.path.join(post_bands_20m, dattype + '_' + post_date + '_B5-B6-B7-B8A-B11-B12_post_' + str(i) + '.tif')
+                geemap.ee_export_image(post_img.clip(roi).select(['B5','B6', 'B7','B8A','B11','B12']), filename=filename, scale=20, file_per_band=False,crs='EPSG:3005')
+            elif (dattype == 'L8') | (dattype == 'L9'): 
+                filename = os.path.join(post_bands_30m, dattype + '_' + post_date + '_B1-B2-B3-B4-B5-B6-B7_post_' + str(i) + '.tif')
+                geemap.ee_export_image(post_img.clip(roi).select(['SR_B1','SR_B2','SR_B3','SR_B4','SR_B5','SR_B6','SR_B7']), filename=filename, scale=30, region=roi, file_per_band=False,crs='EPSG:3005')
+            elif(dattype == 'L5') | (dattype == 'L7'):
+                filename = os.path.join(post_bands_30m, dattype + '_' + post_date + '_B1-B2-B3-B4-B5-B7_post_' + str(i) + '.tif')
+                geemap.ee_export_image(post_img.clip(roi).select(['SR_B1','SR_B2','SR_B3','SR_B4','SR_B5','SR_B7']), filename=filename, scale=30, region=roi, file_per_band=False,crs='EPSG:3005')
+            else:
+                pass
+            
             
             # #pre, truecolor
             # pre_tc = os.path.join(outfolder,'pre_truecolor')
@@ -1084,8 +1239,77 @@ def barc(fires_df,firenumber,outdir,poly,opt,proc,altdir=None):
         gdal.Warp(out,filelist)
         for file in filelist: os.remove(file) #delete tiles
         print('post-fire NBR mosaic complete')
-
-
+        
+        if dattype.startswith('S2'):
+            #pre 10m bands
+            filelist = getfiles(pre_bands_10m,'.tif')
+            outfilename = 'B2-B3-B4-B8_10m_' + firenumber + '_' + pre_date + '_' + dattype + '.tif'
+            out = os.path.join(pre_bands_10m,outfilename)
+            gdal.Warp(out,filelist)
+            for file in filelist: os.remove(file) #delete tiles
+            print('pre-fire 10m bands mosaic complete')
+            
+            #pre 20m bands
+            filelist = getfiles(pre_bands_20m,'.tif')
+            outfilename = 'B5-B6-B7-B8A-B11-B12_20m_' + firenumber + '_' + pre_date + '_' + dattype + '.tif'
+            out = os.path.join(pre_bands_20m,outfilename)
+            gdal.Warp(out,filelist)
+            for file in filelist: os.remove(file) #delete tiles
+            print('pre-fire 20m bands mosaic complete')
+            
+            #post 10m bands
+            filelist = getfiles(post_bands_10m,'.tif')
+            outfilename = 'B2-B3-B4-B8_10m_' + firenumber + '_' + post_date + '_' + dattype + '.tif'
+            out = os.path.join(post_bands_10m,outfilename)
+            gdal.Warp(out,filelist)
+            for file in filelist: os.remove(file) #delete tiles
+            print('post-fire 10m bands mosaic complete')
+            
+            #post 20m bands
+            filelist = getfiles(post_bands_20m,'.tif')
+            outfilename = 'B5-B6-B7-B8A-B11-B12_20m_' + firenumber + '_' + post_date + '_' + dattype + '.tif'
+            out = os.path.join(post_bands_20m,outfilename)
+            gdal.Warp(out,filelist)
+            for file in filelist: os.remove(file) #delete tiles
+            print('post-fire 20m bands mosaic complete')
+        
+        elif (dattype == 'L8') | (dattype == 'L9'): 
+            #pre 30m bands
+            filelist = getfiles(pre_bands_30m,'.tif')
+            outfilename = 'B1-B2-B3-B4-B5-B6-B7_30m_' + firenumber + '_' + pre_date + '_' + dattype + '.tif'
+            out = os.path.join(pre_bands_30m,outfilename)
+            gdal.Warp(out,filelist)
+            for file in filelist: os.remove(file) #delete tiles
+            print('pre-fire 30m bands mosaic complete')
+            
+            #pre 30m bands
+            filelist = getfiles(post_bands_30m,'.tif')
+            outfilename = 'B1-B2-B3-B4-B5-B6-B7_30m_' + firenumber + '_' + post_date + '_' + dattype + '.tif'
+            out = os.path.join(post_bands_30m,outfilename)
+            gdal.Warp(out,filelist)
+            for file in filelist: os.remove(file) #delete tiles
+            print('post-fire 30m bands mosaic complete')
+        
+        elif (dattype == 'L5') | (dattype == 'L7'): 
+            #pre 30m bands
+            filelist = getfiles(pre_bands_30m,'.tif')
+            outfilename = 'B1-B2-B3-B4-B5-B7_30m_' + firenumber + '_' + pre_date + '_' + dattype + '.tif'
+            out = os.path.join(pre_bands_30m,outfilename)
+            gdal.Warp(out,filelist)
+            for file in filelist: os.remove(file) #delete tiles
+            print('pre-fire 30m bands mosaic complete')
+            
+            #pre 30m bands
+            filelist = getfiles(post_bands_30m,'.tif')
+            outfilename = 'B1-B2-B3-B4-B5-B7_30m_' + firenumber + '_' + post_date + '_' + dattype + '.tif'
+            out = os.path.join(post_bands_30m,outfilename)
+            gdal.Warp(out,filelist)
+            for file in filelist: os.remove(file) #delete tiles
+            print('post-fire 30m bands mosaic complete')
+        
+        else:
+            pass
+            
     #add missing parameters
     searchd['pre_mosaic_date'] = pre_mosaic_date
     searchd['post_mosaic_date'] = post_mosaic_date
