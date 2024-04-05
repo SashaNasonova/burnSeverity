@@ -12,7 +12,6 @@ Methodology: https://catalogue.data.gov.bc.ca/dataset/fire-burn-severity-same-ye
 
 ## Installation
 Please follow the instructions outlined here: https://github.com/SashaNasonova/geeMosaics. These scripts require gee, geemap and osgeo gdal packages.
-Installing gdal can be a huge pain. 
 
 ## Part A
 Prepare fire perimeter shapefile. Ensure that the shapefile contains 5 TEXT fields:  
