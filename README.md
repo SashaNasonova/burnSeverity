@@ -24,6 +24,8 @@ post_T2: end of pre-fire image interval ("yyyy-mm-dd")
 You can change the field names if you like, just make sure that you update lines 42 - 47 in main_PartB.py.
 
 ## Part B
+The burn severity products can be generated either using the Jyputer Notebook (BurnSeverity_Mapping.ipynb) or the Python script (main_PartB.py). I recommend that first time users getting started with the Jyputer Notebook, especially if the goal is not to map more than 10 fires at once.
+
 Change line 20 to the location of the scripts  
 Change lines 33 - 35 to define root folder and location of the perimeter shapefile created in Part A  
 Review/change lines 42-47 to match the field names in the shapefile created in Part A  
