@@ -16,9 +16,9 @@ The burn severity products can be generated either using the Jyputer Notebook (B
 Please follow the instructions in Getting_Started_with_GEE.md. 
 
 ## Jyputer Notebook Approach
-Click on BurnSeverity_mapping.ipynb 
-Click Open in Colab 
-Follow sign in prompts. 
+- Click on BurnSeverity_mapping.ipynb 
+- Click Open in Colab 
+- Follow sign in prompts. 
 
 ## Installation
 Please follow the instructions outlined here: https://github.com/SashaNasonova/geeMosaics. These scripts require gee, geemap and osgeo gdal packages.
