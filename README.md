@@ -59,7 +59,8 @@ Please use the test data to get started. The shapefile is already formated and f
 
 ## Part C
 Script to filter, smooth, vectorize, and save as a geodatabase.  
-Open main_PartC.py in a code editor (ex. Notepad++)
-Edit lines 48 - 51
-Copy and paste entire script into the Python window in ArcPro/ArcMap
+To run: 
+1. Open main_PartC.py in a code editor (ex. Notepad++)
+2. Edit lines 48 - 51
+3. Copy and paste entire script into the Python window in ArcPro/ArcMap and run
 
