@@ -15,16 +15,8 @@ The burn severity products can be generated either using the Jyputer Notebook (B
 ## Google Earth Engine Registration
 Please follow the instructions in Getting_Started_with_GEE.md. 
 
-## Jyputer Notebook Approach
-- Click on BurnSeverity_mapping.ipynb 
-- Click Open in Colab 
-- Follow sign in prompts. 
-
-## Installation
-Please follow the instructions outlined here: https://github.com/SashaNasonova/geeMosaics. These scripts require gee, geemap and osgeo gdal packages.
-
 ## Part A
-Prepare fire perimeter shapefile. Ensure that the shapefile contains 5 TEXT fields:  
+Manually prepare fire perimeter shapefile in a GIS software. Ensure that the shapefile contains 5 TEXT fields:  
 Fire_NUMBE: firenumber or some unique identifier   
 pre_T1: start of pre-fire image interval ("yyyy-mm-dd")  
 pre_T2: end of pre-fire image interval ("yyyy-mm-dd")  
@@ -34,6 +26,16 @@ post_T2: end of pre-fire image interval ("yyyy-mm-dd")
 You can change the field names if you like, just make sure that you update lines 42 - 47 in main_PartB.py.
 
 ## Part B
+### Jupyter Notebook Version
+Click BurnSeverityMapping.ipynb
+
+
+### Automated Version
+#### Installation
+Please follow the instructions outlined here: https://github.com/SashaNasonova/geeMosaics. These scripts require gee, geemap and osgeo gdal packages.
+
+#### Execution
+Open main_PartB.py in a code editor (ex. Notepad++)
 Change line 20 to the location of the scripts  
 Change lines 33 - 35 to define root folder and location of the perimeter shapefile created in Part A  
 Review/change lines 42-47 to match the field names in the shapefile created in Part A  
@@ -56,6 +58,7 @@ Please use the test data to get started. The shapefile is already formated and f
 
 ## Part C
 Script to filter, smooth, vectorize, and save as a geodatabase.  
-Edit lines 48 - 51.  
-Copy and paste entire script into the Python window in ArcPro/ArcMap. 
+Open main_PartC.py in a code editor (ex. Notepad++)
+Edit lines 48 - 51
+Copy and paste entire script into the Python window in ArcPro/ArcMap
 
