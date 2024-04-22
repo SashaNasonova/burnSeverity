@@ -10,7 +10,7 @@ Part D - Map Generation (not described here)
 
 Methodology: https://catalogue.data.gov.bc.ca/dataset/fire-burn-severity-same-year
 
-The burn severity products can be generated either using the Jyputer Notebook (BurnSeverity_Mapping.ipynb) or the Python script (main_PartB.py). I recommend that first time users getting started with the Jyputer Notebook, especially if the goal is to map fewer than 10 fires at once.
+The burn severity products can be generated either using the Jupyter Notebook (BurnSeverity_Mapping.ipynb) or the Python script (main_PartB.py). I recommend that first time users begin with the Jupyter Notebook implementation, especially if the goal is to map fewer than 10 fires at once.
 
 ## Google Earth Engine Registration
 Please follow the instructions in Getting_Started_with_GEE.md. 
