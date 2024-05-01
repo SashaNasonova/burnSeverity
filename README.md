@@ -29,7 +29,7 @@ You can change the field names if you like, just make sure that you update lines
 ### Jupyter Notebook Version
 1. Click on the Notebook (BurnSeverityMapping.ipynb)
 2. Click Open in Colab
-3. Follow the steps by pressing the play buttom. 
+3. Follow the steps.
 
 ### Automated Version
 #### Installation
