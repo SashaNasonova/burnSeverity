@@ -1,4 +1,25 @@
-# Import libraries
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Aug  9 13:30:42 2023
+
+Burn Severity Mapping 
+
+Burn Severity Mapping with spaceborne multispectral imagery from Sentinel-2 MSI and Landsat-8/9 OLI Sensors.
+The process has been broken down into 4 parts:
+    
+Part A - Prepare file perimeter vector file
+Part B - Burn Severity Product Generation (barc, quicklooks and qa powerpoint)
+Part C - Filter and Export 
+Part D - Map Generation
+
+This script is focused on Part C and assumes that Part B has been completed and the products have undergone 
+quality control.
+
+@author: snasonov
+"""
+
+#### Part C
+
 from pathlib import Path
 import os, arcpy
 import pandas as pd
@@ -8,7 +29,6 @@ from arcpy import env
 import traceback
 import json
 
-# Import functions
 def barc_filter(reclassed_raster,out_raster):
 	region_grouped_raster = "bRegGrp"
 	arcpy.gp.RegionGroup_sa(reclassed_raster, region_grouped_raster, "FOUR", "WITHIN", "ADD_LINK", "")
@@ -17,19 +37,22 @@ def barc_filter(reclassed_raster,out_raster):
 	arcpy.gp.SetNull_sa(region_grouped_raster, region_grouped_raster, nulled_raster, "COUNT < 10")
 	arcpy.gp.Nibble_sa(reclassed_raster, nulled_raster, out_raster, "DATA_ONLY")
 
+#changed this not to grab clipped file
 def getfiles(d,ext):
     paths = []
     for file in os.listdir(d):
+        #if file.endswith(ext) and not file.endswith('_clip.tif'):
         if file.endswith(ext):
             paths.append(os.path.join(d, file))
     return(paths)     
 
-# Define variables
-root = r"E:\burnSeverity\interim_2024\NE_18Jul" # root folder
-basename = 'interim_burn_severity_G80270' # output geodatabase name
-fire_year = '2024' #fire year, will be appended to the basename
 
-# Create ouput folders 
+root = r"E:\burnSeverity\one_year_later_2014_lakestsa" # root folder
+basename = 'lakestsa_burn_severity_historical'
+fire_year = '2014'
+
+#perims = r"E:\burnSeverity\one_year_later_2022_v2\vectors\firePerims_2022_gteq100ha.shp"
+##############################################################################
 outpath = os.path.join(root,'export','data') #root/export/data
 firelist = os.listdir(outpath)
 
@@ -38,33 +61,49 @@ filtered_path = os.path.join(root,'export','filtered')
 if not os.path.exists(filtered_path):
     os.makedirs(filtered_path)
 
-# Get Spatial Extension
 arcpy.CheckOutExtension("Spatial")
 arcpy.env.overwriteOutput = True
 
-# For each firenumber, get barc file 
 for firenumber in firelist:
-    print('Filtering',firenumber)
     barc_path = os.path.join(outpath,firenumber,'barc')
-    arcpy.env.workspace = barc_path
     i = getfiles(barc_path,'.tif')[0]
-    print('Input BARC raster:',i)
     out_name = Path(i).stem + '_filtered.tif'
     out_raster = os.path.join(filtered_path,out_name)
-    print('Output BARC raster:',out_raster)
     barc_filter(i,out_raster)
     
 
-# New dict for sceneIds
+#new dict for sceneIds
 d = dict.fromkeys(firelist)
 
 df = pd.DataFrame(data=None,columns=['barc_tif','PRE_FIRE_IMAGE','POST_FIRE_IMAGE'])
 
-# Look for burn severity 
 barc_folder = os.path.join(root,'export','filtered')
 barc_files = getfiles(barc_folder,'.tif')
-print('Filtered:',barc_files)
 
+for fire in firelist:
+    fire_folder = os.path.join(outpath,fire) 
+
+    barc = [item for item in barc_files if fire in item][0]
+    name = Path(barc).stem
+    print(name)
+    
+    #get dates and sensor
+    pre_date = name.rsplit('_')[2]
+    post_date = name.rsplit('_')[3]
+    
+    if 'S2' in name:
+        sensor = 'S2'
+    elif 'L8' in name:
+        sensor = 'L8'
+    elif 'L9' in name:
+        sensor = 'L9'
+    elif 'L5' in name:
+        sensor = 'L5'
+    elif 'L7' in name:
+        sensor = 'L7'
+    else:
+        print('No sensor found!')
+    
 ## Export to vector
 arcpy.CheckOutExtension("Spatial")
 env.overwriteOutput = True
@@ -163,7 +202,7 @@ for barc_tif in barc_list:
     #COMMENTS
     f = "COMMENTS"
     arcpy.AddField_management(out_fc, f, "TEXT")
-
+      
 #make empty fc, append all in
 env.workspace = output_gdb
 env.overwriteOutput = True
@@ -213,6 +252,18 @@ arcpy.management.CalculateGeometryAttributes(layer, "AREA_HA AREA", '', "HECTARE
 arcpy.management.CalculateGeometryAttributes(layer, "FEATURE_AREA_SQM AREA", '', "SQUARE_METERS", proj, "SAME_AS_INPUT")
 arcpy.management.CalculateGeometryAttributes(layer, "FEATURE_LENGTH_M PERIMETER_LENGTH", "METERS", '', proj, "SAME_AS_INPUT")
 
+# gdb_clip = layer+'_clip'
+# #clip to boundaries
+# arcpy.analysis.PairwiseClip(
+#     in_features=layer,
+#     clip_features=perims,
+#     out_feature_class=gdb_clip,
+#     cluster_tolerance=None
+# )
+
+#arcpy.management.CalculateGeometryAttributes(gdb_clip, "AREA_HA AREA", '', "HECTARES", proj, "SAME_AS_INPUT")
+
+#recalculate AREA_HA field
 print('Creating final geodatabase')
 
 #copy final layer to a new database
@@ -223,13 +274,11 @@ output_gdb_final = os.path.join(out_gdb_dir, gdb_name_final+'.gdb')
 if not arcpy.Exists(output_gdb_final): 
     arcpy.CreateFileGDB_management(out_gdb_dir,gdb_name_final+'.gdb')
     
+#infile = os.path.join(output_gdb,gdb_clip)
 infile = layer
 outfile = os.path.join(output_gdb_final,gdb_name_final)
 
-# Created a temp database because I couldn't delete gridcode field in place
 arcpy.management.CopyFeatures(infile,outfile)
 arcpy.DeleteField_management(outfile,["gridcode"]) #delete gridcode field
 
 print('Processing complete')
-
-

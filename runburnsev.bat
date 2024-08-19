@@ -1,3 +1,3 @@
-CALL C:\Users\snasonov\Anaconda3\Scripts\activate.bat gee && python C:\Dev\git\burnSeverity\main_partB.py "fireperims.shp" "S2" "E:\burnSeverity\one_year_later_2014_lakestsa"
-CALL C:\Users\snasonov\Anaconda3\Scripts\activate.bat gee && python C:\Dev\git\burnSeverity\main_partB.py "fireperims.shp" "L8" "E:\burnSeverity\one_year_later_2014_lakestsa"
-::CALL C:\Users\snasonov\Anaconda3\Scripts\activate.bat gee && python C:\Dev\git\burnSeverity\main_partB.py "firePerims_gteq100ha_01Nov2023_clean_Run4_wdates.shp" "L9" "E:\burnSeverity\same_year_2023_Run4"
+CALL C:\Users\snasonov\Anaconda3\Scripts\activate.bat gee && python C:\Dev\git\burnSeverity\main_partB.py "perims.shp" "S2" "E:\burnSeverity\interim_2024\Nfires_Aug13_eval"
+CALL C:\Users\snasonov\Anaconda3\Scripts\activate.bat gee && python C:\Dev\git\burnSeverity\main_partB.py "perims.shp" "L8" "E:\burnSeverity\interim_2024\Nfires_Aug13_eval"
+CALL C:\Users\snasonov\Anaconda3\Scripts\activate.bat gee && python C:\Dev\git\burnSeverity\main_partB.py "perims.shp" "L9" "E:\burnSeverity\interim_2024\Nfires_Aug13_eval"

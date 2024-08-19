@@ -20,7 +20,7 @@ Especially pre_T1, pre_T2, post_T1, and post_T2
 code_loc = r'C:\Dev\git\burnSeverity'
 
 from pathlib import Path
-import os, shutil, pickle
+import os, shutil,time,geopandas
 os.chdir(code_loc)
 
 from burnsev_gee import * 
@@ -37,9 +37,9 @@ if len(sys.argv) > 1:
     dattype = sys.argv[2]
     root = sys.argv[3]
 else:
-    fires_poly = 'firePerims_gteq100ha_01Nov2023_clean.shp'
-    dattype = 'S2' #L5,L7,L8,L9,S2
-    root = r"E:\burnSeverity\for_jaya" # root folder
+    fires_poly = 'for_nat.shp'
+    dattype = 'L5' #L5,L7,L8,L9,S2
+    root = r"E:\burnSeverity\for_nat" # root folder
 
 
 ## Define inputs
@@ -57,32 +57,72 @@ postT1 = 'post_T1'
 postT2 = 'post_T2'
 areaha = 'FIRE_SIZE_'
 
-##debug?
+#Check for available imagery only?
+evalOnly = True
+
+## Debug?
 debug = False
-debug_list = ['R10070']
+debug_list = ['N71148']
+
+## Mask clouds?
+mask_clouds = False
 
 ## Export alternate quicklooks?
-export_alt = False
-preflag = False #export pre-image alternates
-postflag = False #export post-image alternates 
+preflag = True #export pre-image alternates
+postflag = True #export post-image alternates 
+
+## How to select post-fire image? Based on AOT (True, default) or most recent?
+postAOT = True
 
 ## Export data?
-export_data = True
+export_data = False
 
 ## Override? 
-override = True #True or False
+override = False #True or False
+overridedict = dict(C50054 = {'pre_mosaic': '2009-07-29', 
+                              'post_mosaic': '2011-08-04',
+                              'sensor':'L5'})
+
+###############################################################################
+## If eval only, set everything to false
+if evalOnly:
+    preflag = False
+    postflag = False 
+    mask_clouds = False
+    postAOT = False
+    export_data = False
+    override = False #True or False
 
 ## Optional - override dictionary
 if override:
-    export_alt = False #don't export alternates
+    preflag = False
+    postflag = False 
+    
     print('Override selected')
-    override = dict(G41149 = {'pre_mosaic': '2022-08-09', 'post_mosaic': '2023-09-10','sensor':'S2'})
-    # p = r'E:\burnSeverity\same_year_2023_Run1_v2\QC\s2_rerun_1.pkl'
-    # with open(p, 'rb') as f:
-    #     override = pickle.load(f)
+    override = overridedict
     print(override)
     
 bc_boundary = r"C:\Data\Datasets\BC_Boundary_Terrestrial_gcs_simplify.shp"
+
+## Print out parameters 
+print('Parameters selected')
+print('Debug: ', debug)
+print('Eval Only: ', evalOnly)
+if debug:
+    print('Debug fire list: ',debug_list)
+print('Override: ', override)
+print('Mask Clouds: ', mask_clouds)
+print('Export pre-fire alternates: ',preflag)
+print('Export post-fire alternates: ', postflag)
+
+if postAOT: 
+    print('Post-fire image selection process: AOT/Scene Cloud Cover')
+else:
+    print('Post-fire image selection process: Most Recent')
+
+print('Exporting data: ',export_data)
+
+time.sleep(10)
 
 ###############################################################################
 #create parameter dictionary to feed into barc mapping
@@ -90,8 +130,11 @@ opt = {'fn':fn,
        'preT1':preT1,'preT2':preT2,
        'postT1':postT1,'postT2':postT2,
        'dattype':dattype,'areaha':areaha,
-       'export_data':export_data,'export_alt':export_alt,
-       'override':override}
+       'postAOT':postAOT,
+       'export_data':export_data,
+       'mask_clouds':mask_clouds,
+       'override':override,
+       'evalOnly':evalOnly}
 
 #Create output directory
 if not os.path.exists(outpath):
@@ -107,13 +150,13 @@ qcdir = os.path.join(root,'QC',dattype)
 if not os.path.exists(qcdir):
         os.makedirs(qcdir)
         
-#Create alternate directory by sensor
-altdir = os.path.join(root,'alt',dattype)   
-if not os.path.exists(altdir):
-    os.makedirs(altdir)
-
 #Initialize gee 
-ee.Initialize()
+try:    
+    print('Using test account')
+    ee.Initialize(project='burn-severity-2024')
+except:
+    print('Using operational account')
+    ee.Initialize(project='rsfaibfall2024')
 
 #open fires shapefile
 fires_df = geopandas.read_file(fires_shp)
@@ -143,26 +186,7 @@ for firenumber in fireslist:
     try:
         print(firenumber)
         out = os.path.join(outdir,firenumber)
-        if os.path.exists(out):
-            shutil.rmtree(out)
-            print('Deleted previous outdir')
         
-        #Create QC folder
-        qcdirfirenum = os.path.join(qcdir,firenumber)
-        if os.path.exists(qcdirfirenum):
-            shutil.rmtree(qcdirfirenum)
-            os.makedirs(qcdirfirenum)
-            print('Deleted previous qc folder')
-        else:
-            os.makedirs(qcdirfirenum)
-        
-        
-        if export_alt:
-            alt_folder = os.path.join(altdir,firenumber)
-            if os.path.exists(alt_folder):
-                shutil.rmtree(alt_folder)
-                print('Deleted previous altdir')
-    
         #Load in shapefile
         poly_df = fires_df[fires_df[fn] == firenumber]
         outshp = os.path.join(root,'vectors',firenumber+'_temp.shp')
@@ -170,114 +194,140 @@ for firenumber in fireslist:
         poly = geemap.shp_to_ee(outshp)
         
         #Run BARC
-        barc_path,pre_sw_8bit,post_sw_8bit,pre_tc_8bit,post_tc_8bit,col_list = barc(fires_df,firenumber,outdir,poly,opt,proc,altdir)
-        
-        print(barc_path)
-        print(pre_sw_8bit)
-        print(post_sw_8bit)
-        print(pre_tc_8bit)
-        print(post_tc_8bit)
-        
-        #Generate quicklook
-        #truecolor
-        name = Path(pre_tc_8bit).stem + '.png'
-        pre_tc_ql = os.path.join(qcdir,firenumber,name)
-        ql_3band(outshp,pre_tc_8bit,pre_tc_ql)
-        
-        name = Path(post_tc_8bit).stem + '.png'
-        post_tc_ql = os.path.join(qcdir,firenumber,name)
-        ql_3band(outshp,post_tc_8bit,post_tc_ql)
-        
-        #swir 
-        name = Path(pre_sw_8bit).stem + '.png'
-        pre_sw_ql = os.path.join(qcdir,firenumber,name)
-        ql_3band(outshp,pre_sw_8bit,pre_sw_ql)
-        
-        name = Path(post_sw_8bit).stem + '.png'
-        post_sw_ql = os.path.join(qcdir,firenumber,name)
-        ql_3band(outshp,post_sw_8bit,post_sw_ql)
-    
-        #barc
-        name = Path(barc_path).stem + '.png'
-        barc_ql = os.path.join(qcdir,firenumber,name)
-        ql_barc(outshp,barc_path,post_tc_8bit,barc_ql)
-        
-        #add location map
-        name = firenumber + '_locmap.png'
-        map_ql = os.path.join(qcdir,firenumber,name)
-      
-        fire_perim = os.path.join(root,'vectors',firenumber+'_temp_gcs.shp')
-        if os.path.isfile(fire_perim):
-            pass
+        if evalOnly:
+            barc_path,pre_sw_8bit,post_sw_8bit,pre_tc_8bit,post_tc_8bit,col_list = barc(fires_df,firenumber,outdir,poly,opt,proc)
         else:
-            fire_perim = os.path.join(root,'vectors',firenumber+'_temp.shp')
+            if os.path.exists(out):
+                shutil.rmtree(out)
+                print('Deleted previous outdir')
+            
+            #Create QC folder
+            qcdirfirenum = os.path.join(qcdir,firenumber)
+            if os.path.exists(qcdirfirenum):
+                shutil.rmtree(qcdirfirenum)
+                os.makedirs(qcdirfirenum)
+                print('Deleted previous qc folder')
+            else:
+                os.makedirs(qcdirfirenum)
+            
+            barc_path,pre_sw_8bit,post_sw_8bit,pre_tc_8bit,post_tc_8bit,col_list = barc(fires_df,firenumber,outdir,poly,opt,proc)
+            print(barc_path)
+            print(pre_sw_8bit)
+            print(post_sw_8bit)
+            print(pre_tc_8bit)
+            print(post_tc_8bit)
+            
+            #Generate quicklook
+            #truecolor
+            name = Path(pre_tc_8bit).stem + '.png'
+            pre_tc_ql = os.path.join(qcdir,firenumber,name)
+            ql_3band(outshp,pre_tc_8bit,pre_tc_ql)
+            
+            name = Path(post_tc_8bit).stem + '.png'
+            post_tc_ql = os.path.join(qcdir,firenumber,name)
+            ql_3band(outshp,post_tc_8bit,post_tc_ql)
+            
+            #swir 
+            name = Path(pre_sw_8bit).stem + '.png'
+            pre_sw_ql = os.path.join(qcdir,firenumber,name)
+            ql_3band(outshp,pre_sw_8bit,pre_sw_ql)
+            
+            name = Path(post_sw_8bit).stem + '.png'
+            post_sw_ql = os.path.join(qcdir,firenumber,name)
+            ql_3band(outshp,post_sw_8bit,post_sw_ql)
         
-        inset_map(bc_boundary,fire_perim,map_ql)
+            #barc
+            name = Path(barc_path).stem + '.png'
+            barc_ql = os.path.join(qcdir,firenumber,name)
+            ql_barc(outshp,barc_path,post_tc_8bit,barc_ql)
+            
+            #add location map
+            name = firenumber + '_locmap.png'
+            map_ql = os.path.join(qcdir,firenumber,name)
+          
+            fire_perim = os.path.join(root,'vectors',firenumber+'_temp_gcs.shp')
+            if os.path.isfile(fire_perim):
+                pass
+            else:
+                fire_perim = os.path.join(root,'vectors',firenumber+'_temp.shp')
+            
+            inset_map(bc_boundary,fire_perim,map_ql)
+            
+            #add stats table
+            outpath = os.path.join(outdir,firenumber,'barc_stats.csv')
+            df = zonal_barc(barc_path,outshp,outpath)
+            
+            #Add slide to powerpoint
+            add_slide(pptpath,pre_tc_ql,post_tc_ql,barc_ql,map_ql,df)
+            add_slide(pptpath,pre_sw_ql,post_sw_ql,barc_ql,map_ql,df)
+            
+            ### Create alternate quicklooks and powerpoints
+            #Create output folder
+            if preflag or postflag:
+                altdir = os.path.join(root,'alt',dattype,firenumber)
+                if os.path.exists(altdir):
+                    shutil.rmtree(altdir)
+                    os.makedirs(altdir)
+                    print('Deleted previous alt folder')
+                else:
+                    os.makedirs(altdir)
+            
+            if preflag:            
+                imgtype = 'pre'
+                print('Exporting pre-fire alternates')
         
-        #add stats table
-        outpath = os.path.join(outdir,firenumber,'barc_stats.csv')
-        df = zonal_barc(barc_path,outshp,outpath)
-        
-        #Add slide to powerpoint
-        add_slide(pptpath,pre_tc_ql,post_tc_ql,barc_ql,map_ql,df)
-        add_slide(pptpath,pre_sw_ql,post_sw_ql,barc_ql,map_ql,df)
-        
-        #Create alternate quicklooks and powerpoints
-        if export_alt:            
-            print('Exporting alternates')
-            ##TODO: export alternates here instead
-            export_alternates(alt_folder,col_list[0],col_list[1],dattype,fires_df,poly,opt,firenumber,preflag,postflag)
-            
-            #Create alt folder
-            altdirpre = os.path.join(altdir,firenumber,'pre_png')
-            if not os.path.exists(altdirpre):
-                    os.makedirs(altdirpre)
-                    
-            altdirpost = os.path.join(altdir,firenumber,'post_png')
-            if not os.path.exists(altdirpost):
-                    os.makedirs(altdirpost)
-                    
-            ###pre    
-            ##create images
-            folder = os.path.join(altdir,firenumber,'pre_truecolor_8bit_alt')
-            ql_3band_batch(folder,outshp,altdirpre)
-            
-            ##create ppt
-            pptpath_alt = os.path.join(altdirpre,firenumber+ '_'+ dattype + '_alt-pre-ppt.pptx')
-            create_ppt(pptpath_alt)
-            ##add slides
-            add_slides_batch(altdirpre,pptpath_alt)
-            
-            ###post
-            folder = os.path.join(altdir,firenumber,'post_truecolor_8bit_alt')
-            ql_3band_batch(folder,outshp,altdirpost)
-            
-            ##create ppt
-            pptpath_alt = os.path.join(altdirpost,firenumber+ '_'+ dattype + '_alt-post-ppt.pptx')
-            create_ppt(pptpath_alt)
-            ##add slides
-            add_slides_batch(altdirpost,pptpath_alt)
-            
-            ### check for temp shp files and delete
-            print('deleting temp shapefiles')
-            shp1 = os.path.join(root,'vectors',firenumber+'_temp_gcs.shp')
-            if os.path.isfile(shp1):
-                os.remove(os.path.join(root,'vectors',firenumber+'_temp_gcs.shp'))
-                os.remove(os.path.join(root,'vectors',firenumber+'_temp_gcs.cpg'))
-                os.remove(os.path.join(root,'vectors',firenumber+'_temp_gcs.dbf'))
-                os.remove(os.path.join(root,'vectors',firenumber+'_temp_gcs.prj'))
-                os.remove(os.path.join(root,'vectors',firenumber+'_temp_gcs.shx'))
+                output_folder = export_alternates(altdir,col_list[0],dattype,fires_df,poly,opt,firenumber,imgtype)
+                altdirpng = output_folder + '_png'
+                if not os.path.exists(altdirpng):
+                    os.makedirs(altdirpng)
                 
+                #Create ppt
+                pptpath_alt = os.path.join(altdirpng,firenumber+ '_'+ dattype + '_alt-pre-ppt.pptx')
+                create_ppt(pptpath_alt)
+                
+                ql_3band_batch(output_folder,outshp,altdirpng)
+                
+                ##add slides
+                add_slides_batch(altdirpng,pptpath_alt)
             
-            shp2 = os.path.join(root,'vectors',firenumber+'_temp.shp')
-            if os.path.isfile(shp2):    
-                #delete shp all files
-                os.remove(os.path.join(root,'vectors',firenumber+'_temp.shp'))
-                os.remove(os.path.join(root,'vectors',firenumber+'_temp.cpg'))
-                os.remove(os.path.join(root,'vectors',firenumber+'_temp.dbf'))
-                os.remove(os.path.join(root,'vectors',firenumber+'_temp.prj'))
-                os.remove(os.path.join(root,'vectors',firenumber+'_temp.shx'))
-    
+            if postflag:
+                imgtype = 'post'
+                print('Exporting post-fire alternates')
+                
+                output_folder = export_alternates(altdir,col_list[1],dattype,fires_df,poly,opt,firenumber,imgtype)
+                altdirpng = output_folder + '_png'
+                if not os.path.exists(altdirpng):
+                    os.makedirs(altdirpng)
+            
+                #Create ppt
+                pptpath_alt = os.path.join(altdir,firenumber+ '_'+ dattype + '_alt-post-ppt.pptx')
+                create_ppt(pptpath_alt)
+            
+                ql_3band_batch(output_folder,outshp,altdirpng)
+                
+                ##add slides
+                add_slides_batch(altdirpng,pptpath_alt)
+                
+        ### check for temp shp files and delete
+        print('deleting temp shapefiles')
+        shp1 = os.path.join(root,'vectors',firenumber+'_temp_gcs.shp')
+        if os.path.isfile(shp1):
+            os.remove(os.path.join(root,'vectors',firenumber+'_temp_gcs.shp'))
+            os.remove(os.path.join(root,'vectors',firenumber+'_temp_gcs.cpg'))
+            os.remove(os.path.join(root,'vectors',firenumber+'_temp_gcs.dbf'))
+            os.remove(os.path.join(root,'vectors',firenumber+'_temp_gcs.prj'))
+            os.remove(os.path.join(root,'vectors',firenumber+'_temp_gcs.shx'))
+            
+        
+        shp2 = os.path.join(root,'vectors',firenumber+'_temp.shp')
+        if os.path.isfile(shp2):    
+            #delete shp all files
+            os.remove(os.path.join(root,'vectors',firenumber+'_temp.shp'))
+            os.remove(os.path.join(root,'vectors',firenumber+'_temp.cpg'))
+            os.remove(os.path.join(root,'vectors',firenumber+'_temp.dbf'))
+            os.remove(os.path.join(root,'vectors',firenumber+'_temp.prj'))
+            os.remove(os.path.join(root,'vectors',firenumber+'_temp.shx'))
+                
     except Exception as e:
         failed.append(firenumber)
         traceback.print_exc()
