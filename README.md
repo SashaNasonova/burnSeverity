@@ -10,7 +10,7 @@ Part D - Map Generation (not described here)
 
 Methodology: https://catalogue.data.gov.bc.ca/dataset/fire-burn-severity-same-year
 
-The burn severity products can be generated either using the Jyputer Notebook (BurnSeverity_Mapping.ipynb) or the Python script (main_PartB.py). I recommend that first time users getting started with the Jyputer Notebook, especially if the goal is to map fewer than 10 fires at once.
+The burn severity products can be generated either using the Jupyter Notebook (BurnSeverity_Mapping.ipynb) or the Python script (main_PartB.py). I recommend that first time users begin with the Jupyter Notebook implementation, especially if the goal is to map fewer than 10 fires at once.
 
 ## Google Earth Engine Registration
 Please follow the instructions in Getting_Started_with_GEE.md. 
@@ -27,19 +27,21 @@ You can change the field names if you like, just make sure that you update lines
 
 ## Part B
 ### Jupyter Notebook Version
-Click BurnSeverityMapping.ipynb
-
+1. Click on the Notebook (BurnSeverityMapping.ipynb)
+2. Click Open in Colab
+3. Follow the steps.
 
 ### Automated Version
 #### Installation
 Please follow the instructions outlined here: https://github.com/SashaNasonova/geeMosaics. These scripts require gee, geemap and osgeo gdal packages.
 
 #### Execution
-Open main_PartB.py in a code editor (ex. Notepad++)
-Change line 20 to the location of the scripts  
-Change lines 33 - 35 to define root folder and location of the perimeter shapefile created in Part A  
-Review/change lines 42-47 to match the field names in the shapefile created in Part A  
-Select whether to export alternates (quicklook images of all available images), export data (NBR, dNBR, dNBR_scaled), or override  
+To prepare: 
+1. Open main_PartB.py in a code editor (ex. Notepad++)
+2. Change line 20 to the location of the scripts  
+3. Change lines 33 - 35 to define root folder and location of the perimeter shapefile created in Part A  
+4. Review/change lines 42-47 to match the field names in the shapefile created in Part A  
+5. Select whether to export alternates (quicklook images of all available images), export data (NBR, dNBR, dNBR_scaled), or override  
 Default is:
 ```
 export_alt = True
@@ -58,7 +60,8 @@ Please use the test data to get started. The shapefile is already formated and f
 
 ## Part C
 Script to filter, smooth, vectorize, and save as a geodatabase.  
-Open main_PartC.py in a code editor (ex. Notepad++)
-Edit lines 48 - 51
-Copy and paste entire script into the Python window in ArcPro/ArcMap
+To run: 
+1. Open main_PartC.py in a code editor (ex. Notepad++)
+2. Edit lines 48 - 51
+3. Copy and paste entire script into the Python window in ArcPro/ArcMap and run
 
