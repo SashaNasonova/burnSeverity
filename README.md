@@ -40,11 +40,11 @@ Download repository and store it locally.
 To prepare: 
 1. Open config.yaml in a code editor (ex. Notepad++)
 2. Adapt configuration file including the GEE cloud project name
-3. Define inputs: root directory, fire perimeter shapefile and platform (S2, L8, L9)  
+3. Define inputs: root directory, fire perimeter shapefile and platform (S2, L5, L7, L8, L9)  
 4. Select processing parameters: cloud masking, evaluation mode only, export pre/post alternates (quicklook images of all available images), select post-fire image by AOT/cloud metadata export data (NBR, dNBR, dNBR_scaled), or override  
 
 Override can be used if you already know which image dates you want to use. The script will accept a dictionary of pre- and post-fire image dates along
-with the sensor (S2, L8 or L9). It can also be used for reruns with the help of quicklooks in the alt folder if the first attempt isn't satisfactory.
+with the platform (S2, L5, L7, L8 or L9). It can also be used for reruns with the help of quicklooks in the alt folder if the first attempt isn't satisfactory.
 
 To run:
 1. In Anaconda Prompt activate the gee environment
