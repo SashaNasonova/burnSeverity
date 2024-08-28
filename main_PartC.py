@@ -25,8 +25,8 @@ def getfiles(d,ext):
     return(paths)     
 
 # Define variables
-root = r"E:\burnSeverity\interim_2024\NE_18Jul" # root folder
-basename = 'interim_burn_severity_G80270' # output geodatabase name
+root = r"E:\burnSeverity\interim_2024\Nfires_Aug13_eval" # root folder
+basename = 'interim_burn_severity' # output geodatabase name
 fire_year = '2024' #fire year, will be appended to the basename
 
 # Create ouput folders 
@@ -47,7 +47,7 @@ for firenumber in firelist:
     print('Filtering',firenumber)
     barc_path = os.path.join(outpath,firenumber,'barc')
     arcpy.env.workspace = barc_path
-    i = getfiles(barc_path,'.tif')[0]
+    i = getfiles(barc_path,'_msk.tif')[0]
     print('Input BARC raster:',i)
     out_name = Path(i).stem + '_filtered.tif'
     out_raster = os.path.join(filtered_path,out_name)

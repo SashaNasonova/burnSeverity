@@ -1,3 +1,1 @@
-CALL C:\Users\snasonov\Anaconda3\Scripts\activate.bat gee && python C:\Dev\git\burnSeverity\main_partB.py "perims.shp" "S2" "E:\burnSeverity\interim_2024\Nfires_Aug13_eval"
-CALL C:\Users\snasonov\Anaconda3\Scripts\activate.bat gee && python C:\Dev\git\burnSeverity\main_partB.py "perims.shp" "L8" "E:\burnSeverity\interim_2024\Nfires_Aug13_eval"
-CALL C:\Users\snasonov\Anaconda3\Scripts\activate.bat gee && python C:\Dev\git\burnSeverity\main_partB.py "perims.shp" "L9" "E:\burnSeverity\interim_2024\Nfires_Aug13_eval"
+CALL C:\Users\snasonov\Anaconda3\Scripts\activate.bat gee && python C:\Dev\git\burnSeverity\main_partB.py

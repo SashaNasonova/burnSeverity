@@ -238,7 +238,7 @@ def barc(fires_df,firenumber,outdir,poly,opt,proc):
     
     #firelist = [firenumber]
     
-    if opt['override']:
+    if opt['overrideflag']:
         dattype = opt['override'][firenumber]['sensor']
     else:
         dattype = opt['dattype']
@@ -278,7 +278,7 @@ def barc(fires_df,firenumber,outdir,poly,opt,proc):
             
     ######### Find pre-fire images 
     # TO DO: add an option for multiple date ranges
-    if opt['override']:
+    if opt['overrideflag']:
         startdate = (datetime.strptime(opt['override'][firenumber]['pre_mosaic'],'%Y-%m-%d') + timedelta(days=-2)).strftime('%Y-%m-%d') ## for reruns
         enddate =  (datetime.strptime(opt['override'][firenumber]['pre_mosaic'],'%Y-%m-%d') + timedelta(days=2)).strftime('%Y-%m-%d') ## for reruns
     else:
@@ -286,6 +286,10 @@ def barc(fires_df,firenumber,outdir,poly,opt,proc):
         searchd[opt['preT1']] = startdate
         enddate = fires_df[fires_df[opt['fn']] == firenumber].iloc[0][opt['preT2']]
         searchd[opt['preT2']] = enddate
+    
+    #print pre-fire search interval
+    print('Pre T1: ', startdate)
+    print('Pre T2: ', enddate)
     
     # Search archive
     cld =100 #cloud cover percentage
@@ -470,14 +474,14 @@ def barc(fires_df,firenumber,outdir,poly,opt,proc):
     
     #if greater than 90% coverage not available print error and exit 
     if max(meta_df_ext['percent_coverage']) < 90:
-        if opt['override']:
+        if opt['overrideflag']:
             print('Override selected. Warning! Pre-image has less than 90% coverage!')
             pass
         else:
             raise Exception('No post-fire scenes available with coverage >=90%')
     
     if min(full_cov['percent_cc']) > 10:
-        if opt['override']:
+        if opt['overrideflag']:
             print('Override selected. Warning! Pre-image has more than 10% cloud cover!')
             pass
         else:
@@ -504,7 +508,7 @@ def barc(fires_df,firenumber,outdir,poly,opt,proc):
     
     ######### Find post-fire images 
     # TO DO: add an option for multiple date ranges 
-    if opt['override']:
+    if opt['overrideflag']:
         startdate = (datetime.strptime(opt['override'][firenumber]['post_mosaic'],'%Y-%m-%d') + timedelta(days=-2)).strftime('%Y-%m-%d') ## for reruns
         enddate =  (datetime.strptime(opt['override'][firenumber]['post_mosaic'],'%Y-%m-%d') + timedelta(days=2)).strftime('%Y-%m-%d') ## for reruns
     else:
@@ -512,6 +516,9 @@ def barc(fires_df,firenumber,outdir,poly,opt,proc):
         searchd['post_T1'] = startdate
         enddate = fires_df[fires_df[opt['fn']] == firenumber].iloc[0][opt['postT2']]
         searchd['post_T2'] = enddate
+    
+    print('Post T1: ', startdate)
+    print('Post T2: ', enddate)
     
     # Search archive
     cld = 100 #cloud cover percentage
@@ -673,14 +680,14 @@ def barc(fires_df,firenumber,outdir,poly,opt,proc):
         
         #if greater than 90% coverage not available print error and exit 
         if max(meta_df_ext['percent_coverage']) < 90:
-            if opt['override']:
+            if opt['overrideflag']:
                 print('Override selected. Warning! Post-image has less than 90% coverage!')
                 pass
             else:
                 raise Exception('No post-fire scenes available with coverage >=90%')
         
         if min(full_cov['percent_cc']) > 20:
-            if opt['override']:
+            if opt['overrideflag']:
                 print('Override selected. Warning! Post-image has more than 20% cloud cover!')
                 pass
             else:
@@ -722,7 +729,7 @@ def barc(fires_df,firenumber,outdir,poly,opt,proc):
         post_scenes_info = post_meta_scenes.loc[post_meta_scenes['date'] == post_mosaic_date]['system:index'].tolist()
         
         #check if over-riding automatic selection
-        if opt['override']:
+        if opt['overrideflag']:
             print('Overriding')
             pre_mosaic_date = opt['override'][firenumber]['pre_mosaic'] ## for reruns
             post_mosaic_date = opt['override'][firenumber]['post_mosaic'] ## for reruns

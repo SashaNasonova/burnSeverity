@@ -1,0 +1,55 @@
+# Configuration settings for burn severity script
+
+# Google Earth Engine settings (Operational: 'rsfaibfall2024', Test: 'burn-severity-2024')
+gee:
+  account: 'burn-severity-2024'
+  
+# Paths for boundary files
+paths:
+  bc_boundary: 'C:\Data\Datasets\BC_Boundary_Terrestrial_gcs_simplify.shp'
+  code_loc: 'C:\Dev\git\burnSeverity' 
+
+# Shapefile field names
+shapefile_fields:
+  fn: 'FIRE_NUMBE'
+  preT1: 'pre_T1'
+  preT2: 'pre_T2'
+  postT1: 'post_T1'
+  postT2: 'post_T2'
+  areaha: 'FIRE_SIZE_'
+
+# Directories and file paths
+inputs:
+  root: 'E:\burnSeverity\interim_2024\for_Don'
+  fires_poly: 'perims.shp'
+  dattype: 
+  - 'S2'
+  - 'L8'
+  - 'L9'
+  proc: 'SR'
+
+# Processing options
+process:
+  mask_clouds: false
+  eval_only: false
+  #Export pre-fire alternates
+  pre_flag: true
+  #Export post-fire alternates
+  post_flag: true
+  post_aot: true
+  export_data: false
+  
+# Debug 
+debug:
+  enable: false
+  debug_list:
+    - 'N71144'
+    
+# Override settings
+override:
+  enable: false
+  details:
+    N51117:
+      pre_mosaic: '2023-08-03'
+      post_mosaic: '2024-08-12'
+      sensor: 'L9'

@@ -65,6 +65,6 @@ def summary(root=None,filename=None):
         for sheet_name, df in all_outputs.items():
             df.to_excel(writer, sheet_name=sheet_name, index=False)
 
-root = r'E:\burnSeverity\interim_2024\Nfires_Aug13_eval'
-filename = 'pre_mosaicMetadata.csv'
+root = r'E:\burnSeverity\interim_2024\for_Don'
+filename = 'post_mosaicMetadata.csv'
 summary(root,filename)
