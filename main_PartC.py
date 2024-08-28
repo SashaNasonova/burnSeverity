@@ -1,3 +1,4 @@
+## Originally developed by Carole Mahood.
 # Import libraries
 from pathlib import Path
 import os, arcpy
