@@ -36,25 +36,26 @@ You can change the field names if you like, just make sure that you update lines
 Please follow the instructions outlined here: https://github.com/SashaNasonova/geeMosaics. These scripts require gee, geemap and osgeo gdal packages.
 
 #### Execution
+Download repository and store it locally.
 To prepare: 
-1. Open main_PartB.py in a code editor (ex. Notepad++)
-2. Change line 20 to the location of the scripts  
-3. Change lines 33 - 35 to define root folder and location of the perimeter shapefile created in Part A  
-4. Review/change lines 42-47 to match the field names in the shapefile created in Part A  
-5. Select whether to export alternates (quicklook images of all available images), export data (NBR, dNBR, dNBR_scaled), or override  
-Default is:
-```
-export_alt = True
-export_data = False
-override = False
-```
+1. Open config.yaml in a code editor (ex. Notepad++)
+2. Adapt configuration file including the GEE cloud project name
+3. Define inputs: root directory, fire perimeter shapefile and platform (S2, L8, L9)  
+4. Select processing parameters: cloud masking, evaluation mode only, export pre/post alternates (quicklook images of all available images), select post-fire image by AOT/cloud metadata export data (NBR, dNBR, dNBR_scaled), or override  
 
 Override can be used if you already know which image dates you want to use. The script will accept a dictionary of pre- and post-fire image dates along
 with the sensor (S2, L8 or L9). It can also be used for reruns with the help of quicklooks in the alt folder if the first attempt isn't satisfactory.
 
 To run:
 1. In Anaconda Prompt activate the gee environment
-2. Run script (example command): python C:\Dev\git\burnSeverity\main_PartB.py
+2. Run the following commands to authenticate gee
+```
+python
+import ee
+ee.Authenticate()
+```
+4. Follow prompts to authenticate
+5. Edit batch file to run script or just run the main_partB.py script (python main_PartB.py)
 
 Please use the test data to get started. The shapefile is already formated and filled out with the correct dates.
 
