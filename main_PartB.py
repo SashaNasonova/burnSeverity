@@ -89,7 +89,7 @@ def main(dattype):
     bc_boundary = config['paths']['bc_boundary']
     
     # GEE project
-    project = config['gee']['account']
+    project = config['gee']['project']
     
     ## Define inputs
     fires_shp = os.path.join(root,'vectors',fires_poly)

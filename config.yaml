@@ -2,7 +2,7 @@
 
 # Google Earth Engine settings (Operational: 'rsfaibfall2024', Test: 'burn-severity-2024')
 gee:
-  account: 'burn-severity-2024'
+  project: 'burn-severity-2024'
   
 # Paths for boundary files
 paths:
