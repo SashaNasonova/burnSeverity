@@ -22,6 +22,7 @@ shapefile_fields:
 inputs:
   root: 'E:\burnSeverity\interim_2024\for_Don'
   fires_poly: 'perims.shp'
+  #dattype options: 'S2','L5','L7','L8','L9'
   dattype: 
   - 'S2'
   - 'L8'
