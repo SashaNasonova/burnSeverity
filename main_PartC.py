@@ -48,7 +48,7 @@ for firenumber in firelist:
     print('Filtering',firenumber)
     barc_path = os.path.join(outpath,firenumber,'barc')
     arcpy.env.workspace = barc_path
-    i = getfiles(barc_path,'_msk.tif')[0]
+    i = getfiles(barc_path,'_clip.tif')[0]
     print('Input BARC raster:',i)
     out_name = Path(i).stem + '_filtered.tif'
     out_raster = os.path.join(filtered_path,out_name)
