@@ -10,108 +10,25 @@ import traceback
 import json
 
 # Import functions
-def barc_filter(barc_path,out_raster):
-    #Set water pixels to NA
-    barc = arcpy.sa.Raster(barc_path)
-    barc_nonan = arcpy.sa.SetNull(barc==5,barc)
+def barc_filter(reclassed_raster,out_raster):
+	region_grouped_raster = "bRegGrp"
+	arcpy.gp.RegionGroup_sa(reclassed_raster, region_grouped_raster, "FOUR", "WITHIN", "ADD_LINK", "")
 
-    #Group and smooth
-    region_grouped_raster = "bRegGrp"
-    arcpy.gp.RegionGroup_sa(barc_nonan, region_grouped_raster, "FOUR", "WITHIN", "ADD_LINK", "")
-
-    nulled_raster = "Nulled"
-    arcpy.gp.SetNull_sa(region_grouped_raster, region_grouped_raster, nulled_raster, "COUNT < 10")
-    nibbled_raster = "Nibbled"
-    arcpy.gp.Nibble_sa(barc_nonan, nulled_raster, nibbled_raster, "DATA_ONLY")
-
-    #Set NA back to zero (unburned)
-    out_filtered = arcpy.sa.Con(barc==5,0,nibbled_raster)
-    out_filtered.save(out_raster)
+	nulled_raster = "Nulled"
+	arcpy.gp.SetNull_sa(region_grouped_raster, region_grouped_raster, nulled_raster, "COUNT < 10")
+	arcpy.gp.Nibble_sa(reclassed_raster, nulled_raster, out_raster, "DATA_ONLY")
 
 def getfiles(d,ext):
     paths = []
     for file in os.listdir(d):
         if file.endswith(ext):
             paths.append(os.path.join(d, file))
-    return(paths)
-
-def getbarc_notclipped(d,ext):
-    paths = []
-    for file in os.listdir(d):
-        if file.endswith(ext) and not file.endswith("_clip"+ext):
-            paths.append(os.path.join(d, file))
     return(paths)     
 
-def water_masking(barc_raster,water_layer):
-
-    barc_raster_wmsk = barc_raster.rsplit('.')[0]+'_wmasked.tif'
-
-    #Load in barc raster, get range of values, if 5 exists skip
-    arcpy.BuildRasterAttributeTable_management(barc_raster)
-    values = [i[0] for i in arcpy.da.SearchCursor(barc_raster,"Value")]
-    if 5 in values:
-        print('Water masking already complete. Exiting.')
-        return(barc_raster)
-    else:
-        if os.path.exists(water_layer):
-            print('Water layer exists. Continuing.')
-            try:
-                #Set values under water layer to 5
-                desc = arcpy.Describe(barc_raster)
-                ext = desc.extent
-                extent_geom = arcpy.Polygon(arcpy.Array([
-                            arcpy.Point(ext.XMin, ext.YMin),
-                            arcpy.Point(ext.XMin, ext.YMax),
-                            arcpy.Point(ext.XMax, ext.YMax),
-                            arcpy.Point(ext.XMax, ext.YMin)
-                        ]), desc.spatialReference)
-
-                out_bb = barc_raster.rsplit('.')[0]+'_bb.shp'
-                arcpy.management.CopyFeatures(extent_geom, out_bb)
-
-                # Clip water layer to extent of BARC raster
-                out_water_layer = barc_raster.rsplit('.')[0]+'_wmsk.shp'
-                arcpy.analysis.Clip(water_layer, out_bb,out_water_layer)
-
-                out_water_rast = barc_raster.rsplit('.')[0]+'_water.tif'
-                # Convert the clipped water polygons to raster
-                with arcpy.EnvManager(snapRaster=barc_raster,extent=barc_raster):
-                    water_raster = arcpy.PolygonToRaster_conversion(
-                        in_features=out_water_layer,
-                        value_field="water",  # any field
-                        out_rasterdataset=out_water_rast,
-                        cell_assignment="CELL_CENTER",
-                        priority_field="NONE",
-                        cellsize=barc_raster,
-                        build_rat="BUILD")
-
-                # Create final mask
-                out_mask = barc_raster.rsplit('.')[0]+'_mask.tif' 
-                mask = (~arcpy.sa.IsNull(barc_raster)) & (~arcpy.sa.IsNull(out_water_rast))
-                
-                # Open up barc raster, mask and save
-                barc = arcpy.sa.Raster(barc_raster)
-                masked_raster = arcpy.sa.Con(mask, 5, barc)
-                print(barc_raster_wmsk)
-                masked_raster.save(barc_raster_wmsk)
-                print('Water masking successful.')
-                return(barc_raster_wmsk)
-        
-            except Exception as e:
-                print(f"Error: {e}")
-                print('Water masking failed. Check error.')
-                return(barc_raster)
-        else:
-            print('Water layer does not exist. Exiting.')
-            return(barc_raster)    
-
 # Define variables
-root = r"E:\burnSeverity\interim_2025" # root folder
+root = r"E:\burnSeverity\interim_2024\Nfires_Aug13_eval" # root folder
 basename = 'interim_burn_severity' # output geodatabase name
-fire_year = '2025' #fire year, will be appended to the basename
-
-# Load in water layer from objectstorage
-water_layer = r"\\objectstore2.nrs.bcgov\RSImgShare\water\vector\s2_bc_2022JulAug_2023JulAug_2024JulAug_bcalb_10m_water_Province.shp"
+fire_year = '2024' #fire year, will be appended to the basename
 
 # Create ouput folders 
 outpath = os.path.join(root,'export','data') #root/export/data
@@ -131,16 +48,12 @@ for firenumber in firelist:
     print('Filtering',firenumber)
     barc_path = os.path.join(outpath,firenumber,'barc')
     arcpy.env.workspace = barc_path
-    #i = getfiles(barc_path,'_clip.tif')[0]
-    i = getbarc_notclipped(barc_path,'.tif')[0]
-    
-    print('Masking water, setting water pixels to 5')
-    ii = water_masking(i,water_layer)
-    print('Input BARC raster:',ii)
-    out_name = Path(ii).stem + '_filtered.tif'
+    i = getfiles(barc_path,'_clip.tif')[0]
+    print('Input BARC raster:',i)
+    out_name = Path(i).stem + '_filtered.tif'
     out_raster = os.path.join(filtered_path,out_name)
     print('Output BARC raster:',out_raster)
-    barc_filter(ii,out_raster)
+    barc_filter(i,out_raster)
     
 
 # New dict for sceneIds
@@ -185,17 +98,10 @@ for barc_tif in barc_list:
     pre_img = barc_tif.rsplit('_')[2]
     post_img = barc_tif.rsplit('_')[3]
     print(fire_number)
-    out_fc_temp = output_gdb + "\\temp_" + fire_number + "_barc_simplify"
-    arcpy.conversion.RasterToPolygon(barc_tif, out_fc_temp, "SIMPLIFY", "VALUE", "SINGLE_OUTER_PART", 10000)
+    out_fc = output_gdb + "\\temp_" + fire_number + "_barc_simplify"
+    arcpy.conversion.RasterToPolygon(barc_tif, out_fc, "SIMPLIFY", "VALUE", "SINGLE_OUTER_PART", 10000)
     print('    - simplified polygons created')
-
-    #get perim path
-    perim = os.path.join(root,'export','data',fire_number,'vectors',fire_number+'.shp')
-    print(perim)
-    out_fc = output_gdb + "\\temp_" + fire_number + "_barc_simplify_clip"
-    arcpy.analysis.Clip(in_features=out_fc_temp,clip_features=perim,out_feature_class=out_fc,cluster_tolerance=None)
-    print('    - clipping to fire perimeter')
-
+    
     #FIRE_NUMBER
     f = 'FIRE_NUMBER'
     arcpy.AddField_management(out_fc, f, "TEXT")
@@ -276,7 +182,7 @@ arcpy.AddField_management(gdb_name, 'POST_FIRE_IMAGE_DATE', 'DATE')
 arcpy.AddField_management(gdb_name, 'COMMENTS', 'TEXT')
 arcpy.AddField_management(gdb_name, 'gridcode', 'SHORT')
    
-simplify_fc_list = arcpy.ListFeatureClasses('temp*barc_simplify_clip')
+simplify_fc_list = arcpy.ListFeatureClasses('temp*barc_simplify')
 print(simplify_fc_list)
 arcpy.Append_management(simplify_fc_list, gdb_name, "NO_TEST")
 print('appended simplified fcs')
@@ -308,20 +214,6 @@ arcpy.management.CalculateGeometryAttributes(layer, "AREA_HA AREA", '', "HECTARE
 arcpy.management.CalculateGeometryAttributes(layer, "FEATURE_AREA_SQM AREA", '', "SQUARE_METERS", proj, "SAME_AS_INPUT")
 arcpy.management.CalculateGeometryAttributes(layer, "FEATURE_LENGTH_M PERIMETER_LENGTH", "METERS", '', proj, "SAME_AS_INPUT")
 
-# Run a topology check and fix any errors
-arcpy.management.CheckGeometry(
-    in_features=layer,
-    out_table=os.path.join(output_gdb,"geom_check_ogc"),
-    validation_method="OGC"
-)
-
-## Run repair
-arcpy.management.RepairGeometry(
-    in_features=layer,
-    delete_null="DELETE_NULL",
-    validation_method="OGC"
-)
-
 print('Creating final geodatabase')
 
 #copy final layer to a new database
@@ -338,7 +230,6 @@ outfile = os.path.join(output_gdb_final,gdb_name_final)
 # Created a temp database because I couldn't delete gridcode field in place
 arcpy.management.CopyFeatures(infile,outfile)
 arcpy.DeleteField_management(outfile,["gridcode"]) #delete gridcode field
-
 
 print('Processing complete')
 
