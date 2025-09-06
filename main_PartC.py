@@ -10,10 +10,10 @@ import traceback
 import json
 
 # Import functions
-def barc_filter(barc_path,out_raster):
-    #Set water pixels to NA
+def barc_filter_waternull(barc_path,out_raster):
+    ##Set water pixels to NA - test this option with Dave 
     barc = arcpy.sa.Raster(barc_path)
-    barc_nonan = arcpy.sa.SetNull(barc==5,barc)
+    barc_nonan = arcpy.sa.SetNull(barc,barc,"VALUE=5")
 
     #Group and smooth
     region_grouped_raster = "bRegGrp"
@@ -24,9 +24,17 @@ def barc_filter(barc_path,out_raster):
     nibbled_raster = "Nibbled"
     arcpy.gp.Nibble_sa(barc_nonan, nulled_raster, nibbled_raster, "DATA_ONLY")
 
-    #Set NA back to zero (unburned)
-    out_filtered = arcpy.sa.Con(barc==5,0,nibbled_raster)
+    #Set water back to 5(unburned)
+    out_filtered = arcpy.sa.Con(barc==5,barc,nibbled_raster)
     out_filtered.save(out_raster)
+
+def barc_filter(reclassed_raster,out_raster):
+	region_grouped_raster = "bRegGrp"
+	arcpy.gp.RegionGroup_sa(reclassed_raster, region_grouped_raster, "FOUR", "WITHIN", "ADD_LINK", "")
+
+	nulled_raster = "Nulled"
+	arcpy.gp.SetNull_sa(region_grouped_raster, region_grouped_raster, nulled_raster, "COUNT < 10")
+	arcpy.gp.Nibble_sa(reclassed_raster, nulled_raster, out_raster, "DATA_ONLY")
 
 def getfiles(d,ext):
     paths = []
@@ -263,6 +271,10 @@ for barc_tif in barc_list:
 env.workspace = output_gdb
 env.overwriteOutput = True
 
+# Set tolerances, needed for BCGW
+env.XYTolerance = "0.001 Meters"
+env.XYResolution = "0.0001 Meters"
+
 proj = 'PROJCS["NAD_1983_BC_Environment_Albers",GEOGCS["GCS_North_American_1983",DATUM["D_North_American_1983",SPHEROID["GRS_1980",6378137.0,298.257222101]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Albers"],PARAMETER["False_Easting",1000000.0],PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",-126.0],PARAMETER["Standard_Parallel_1",50.0],PARAMETER["Standard_Parallel_2",58.5],PARAMETER["Latitude_Of_Origin",45.0],UNIT["Meter",1.0]];-13239300 -8610100 316279566.226605;-100000 10000;-100000 10000;0.001;0.001;0.001;IsHighPrecision'
 
 arcpy.CreateFeatureclass_management(output_gdb, gdb_name,'POLYGON',None,"DISABLED","DISABLED",proj)
@@ -282,22 +294,31 @@ arcpy.Append_management(simplify_fc_list, gdb_name, "NO_TEST")
 print('appended simplified fcs')
    
 #calc burn sev text values
-fields = ['gridcode', 'BURN_SEVERITY_RATING']
+fields = ['gridcode', 'BURN_SEVERITY_RATING','COMMENTS']
 with arcpy.da.UpdateCursor(gdb_name, fields) as update_cur:
     for row in update_cur:
         #print(row[0]) #for debug
         if row[0] == 0:
             burnsev = 'Unknown'
+            comments = None
         if row[0] == 1:
             burnsev = 'Unburned'
+            comments = None
         if row[0] == 2:
             burnsev = 'Low'
+            comments = None
         if row[0] == 3:
             burnsev = 'Medium'
+            comments = None
         if row[0] == 4:
             burnsev = 'High'
+            comments = None
+        if row[0] == 5:
+            burnsev = 'Unburned'
+            comments = 'Satellite-derived water polygon'
         #print(burnsev)
         row[1] = burnsev
+        row[2] = comments
         update_cur.updateRow(row)
 
 #calculate areas and lengths automatically
@@ -338,7 +359,6 @@ outfile = os.path.join(output_gdb_final,gdb_name_final)
 # Created a temp database because I couldn't delete gridcode field in place
 arcpy.management.CopyFeatures(infile,outfile)
 arcpy.DeleteField_management(outfile,["gridcode"]) #delete gridcode field
-
 
 print('Processing complete')
 
