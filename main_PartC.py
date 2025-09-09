@@ -50,79 +50,78 @@ def getbarc_notclipped(d,ext):
             paths.append(os.path.join(d, file))
     return(paths)     
 
-def water_masking(barc_raster,water_layer):
+def water_masking(barc_raster, water_layer):
 
-    barc_raster_wmsk = barc_raster.rsplit('.')[0]+'_wmasked.tif'
+    barc_raster_wmsk = barc_raster.rsplit('.')[0] + '_wmasked.tif'
+    print(barc_raster_wmsk)
 
-    #Load in barc raster, get range of values, if 5 exists skip
-    arcpy.BuildRasterAttributeTable_management(barc_raster)
-    values = [i[0] for i in arcpy.da.SearchCursor(barc_raster,"Value")]
+    try:
+        arcpy.BuildRasterAttributeTable_management(barc_raster, "OVERWRITE")
+    except Exception:
+        try:
+            arcpy.BuildRasterAttributeTable_management(barc_raster)
+        except Exception:
+            pass
+
+    # Skip if 5 already present
+    values = [i[0] for i in arcpy.da.SearchCursor(barc_raster, "Value")]
     if 5 in values:
         print('Water masking already complete. Exiting.')
-        return(barc_raster)
-    else:
-        if os.path.exists(water_layer):
-            print('Water layer exists. Continuing.')
-            try:
-                #Set values under water layer to 5
-                desc = arcpy.Describe(barc_raster)
-                ext = desc.extent
-                extent_geom = arcpy.Polygon(arcpy.Array([
-                            arcpy.Point(ext.XMin, ext.YMin),
-                            arcpy.Point(ext.XMin, ext.YMax),
-                            arcpy.Point(ext.XMax, ext.YMax),
-                            arcpy.Point(ext.XMax, ext.YMin)
-                        ]), desc.spatialReference)
+        return barc_raster
 
-                out_bb = barc_raster.rsplit('.')[0]+'_bb.shp'
-                arcpy.management.CopyFeatures(extent_geom, out_bb)
+    if not os.path.exists(water_layer): 
+        print('Water layer does not exist. Exiting.')
+        return barc_raster
 
-                # Clip water layer to extent of BARC raster
-                out_water_layer = barc_raster.rsplit('.')[0]+'_wmsk.shp'
-                arcpy.analysis.Clip(water_layer, out_bb,out_water_layer)
+    print('Water layer exists. Continuing.')
+    try:
+        # Rasterize water directly into BARC extent/alignment
+        out_water_rast = barc_raster.rsplit('.')[0] + '_water.tif'
+        with arcpy.EnvManager(snapRaster=barc_raster, extent=barc_raster, cellSize=barc_raster):
+            arcpy.conversion.PolygonToRaster(
+                in_features=water_layer,
+                value_field="water", #doesnt really matter what field
+                out_rasterdataset=out_water_rast,
+                cell_assignment="CELL_CENTER",
+                priority_field="NONE",
+                cellsize=barc_raster
+            )
 
-                out_water_rast = barc_raster.rsplit('.')[0]+'_water.tif'
-                # Convert the clipped water polygons to raster
-                with arcpy.EnvManager(snapRaster=barc_raster,extent=barc_raster):
-                    water_raster = arcpy.PolygonToRaster_conversion(
-                        in_features=out_water_layer,
-                        value_field="water",  # any field
-                        out_rasterdataset=out_water_rast,
-                        cell_assignment="CELL_CENTER",
-                        priority_field="NONE",
-                        cellsize=barc_raster,
-                        build_rat="BUILD")
+        # Create mask where water exists
+        mask = (~arcpy.sa.IsNull(barc_raster)) & (~arcpy.sa.IsNull(out_water_rast))
 
-                # Create final mask
-                out_mask = barc_raster.rsplit('.')[0]+'_mask.tif' 
-                mask = (~arcpy.sa.IsNull(barc_raster)) & (~arcpy.sa.IsNull(out_water_rast))
-                
-                # Open up barc raster, mask and save
-                barc = arcpy.sa.Raster(barc_raster)
-                masked_raster = arcpy.sa.Con(mask, 5, barc)
-                print(barc_raster_wmsk)
-                masked_raster.save(barc_raster_wmsk)
-                print('Water masking successful.')
-                return(barc_raster_wmsk)
-        
-            except Exception as e:
-                print(f"Error: {e}")
-                print('Water masking failed. Check error.')
-                return(barc_raster)
-        else:
-            print('Water layer does not exist. Exiting.')
-            return(barc_raster)    
+        # Apply mask: set 5 where water, keep original elsewhere
+        barc = arcpy.sa.Raster(barc_raster)
+        masked_raster = arcpy.sa.Con(mask, 5, barc)
+        print(barc_raster_wmsk)
+        masked_raster.save(barc_raster_wmsk)
+
+        # Clean up temp water raster (optional)
+        try:
+            arcpy.management.Delete(out_water_rast)
+        except Exception:
+            pass
+
+        print('Water masking successful.')
+        return barc_raster_wmsk
+
+    except Exception as e:
+        print("Error: " + str(e))
+        print('Water masking failed. Check error.')
+        return barc_raster
+
 
 # Define variables
-root = r"E:\burnSeverity\interim_2025" # root folder
-basename = 'interim_burn_severity' # output geodatabase name
-fire_year = '2025' #fire year, will be appended to the basename
+root = r"\\spatialfiles2.bcgov\Work\FOR\VIC\HTS\INV\WorkArea\pmarczak\burnseverity" # root folder
+basename = 'interim_burn_severity_test' # output geodatabase name
+fire_year = '2024' #fire year, will be appended to the basename
 
 # Load in water layer from objectstorage
 water_layer = r"\\objectstore2.nrs.bcgov\RSImgShare\water\vector\s2_bc_2022JulAug_2023JulAug_2024JulAug_bcalb_10m_water_Province.shp"
 
 # Create ouput folders 
 outpath = os.path.join(root,'export','data') #root/export/data
+
 firelist = os.listdir(outpath)
 
 filtered_path = os.path.join(root,'export','filtered')
@@ -130,21 +129,28 @@ filtered_path = os.path.join(root,'export','filtered')
 if not os.path.exists(filtered_path):
     os.makedirs(filtered_path)
 
-# Get Spatial Extension
 arcpy.CheckOutExtension("Spatial")
 arcpy.env.overwriteOutput = True
+arcpy.env.parallelProcessingFactor = "100%"
+arcpy.env.compression = "LZ77"
+arcpy.env.pyramid = "PYRAMIDS"
+
 
 # For each firenumber, get barc file 
 for firenumber in firelist:
     print('Filtering',firenumber)
     barc_path = os.path.join(outpath,firenumber,'barc')
     arcpy.env.workspace = barc_path
+    print("line 149", firenumber)
     #i = getfiles(barc_path,'_clip.tif')[0]
-    i = getbarc_notclipped(barc_path,'.tif')[0]
-    
+    i_full = getbarc_notclipped(barc_path,'.tif')[0]
+    # BuildRasterAttributeTable_management requires FILENAME not PATHNAME
+    #therefore input i should be tif name only
+    i_name = os.path.basename(i_full)
     print('Masking water, setting water pixels to 5')
-    ii = water_masking(i,water_layer)
-    print('Input BARC raster:',ii)
+    ii = water_masking(i_name,water_layer)
+    print('Input BARC raster:',i_name) #input is i for water masking, output is ii
+    print('Output water-masked BARC raster', ii) #output after water masking
     out_name = Path(ii).stem + '_filtered.tif'
     out_raster = os.path.join(filtered_path,out_name)
     print('Output BARC raster:',out_raster)
@@ -168,11 +174,11 @@ env.overwriteOutput = True
 delivery_dir = os.path.join(root,'export','filtered')
 out_gdb_dir = os.path.join(root,'export')
 
-#scenes_csv = os.path.join(outpath,'sceneIds.csv')
+# #scenes_csv = os.path.join(outpath,'sceneIds.csv')
 
 gdb_name = basename + '_' + fire_year + '_temp'
 
-#create fgdb to hold outputs:
+# #create fgdb to hold outputs:
 output_gdb = os.path.join(out_gdb_dir, gdb_name+'.gdb')
 if not arcpy.Exists(output_gdb): 
     arcpy.CreateFileGDB_management(out_gdb_dir,gdb_name+'.gdb')
@@ -187,7 +193,7 @@ print(barc_list)
 #expects barc_tif in the following format (BARC_C52648_20220910_20221030_S2_filtered.tif) 
 for barc_tif in barc_list:
         
-    #print(barc_tif)
+    print(barc_tif)
     print('converting', os.path.basename(barc_tif), 'to polygon')
     fire_number = barc_tif.rsplit('_')[1]
     pre_img = barc_tif.rsplit('_')[2]
@@ -221,45 +227,36 @@ for barc_tif in barc_list:
     with open(metadata_loc, 'r') as json_file:
         data_dict = json.load(json_file)
     
-    #PRE_FIRE_IMAGE
-    f = 'PRE_FIRE_IMAGE'
-    pre_fire_image_list = data_dict['pre_scenes']
-    pre_fire_image = ','.join(pre_fire_image_list)
-    
-    arcpy.AddField_management(out_fc, f, "TEXT")
-    arcpy.CalculateField_management(out_fc, f, "\"" + pre_fire_image + "\"", "PYTHON_9.3") 
+   # PRE_FIRE_IMAGE (list -> CSV)
+    arcpy.AddField_management(out_fc, "PRE_FIRE_IMAGE", "TEXT")
+    pre_fire_image = ",".join(data_dict.get('pre_scenes', []))
+    arcpy.management.CalculateField(out_fc, "PRE_FIRE_IMAGE", f"'{pre_fire_image}'", "PYTHON3")
     print('    - added pre img to feature class')
-    
-    #PRE_FIRE_IMAGE_DATE
-    f = "PRE_FIRE_IMAGE_DATE"
-    pre_img_date_str = pre_img[0:4] + '-' + pre_img[4:6] + '-' + pre_img[6:8]
-    pre_img_date = datetime.strptime(pre_img_date_str, '%Y-%m-%d')
-    arcpy.AddField_management(out_fc, f, "DATE")
-    
-    with arcpy.da.UpdateCursor(out_fc, [f]) as rows:
-        for row in rows:
-            rows.updateRow([pre_img_date])
-   
+
+    # PRE_FIRE_IMAGE_DATE (CalculateField once for all rows)
+    pre_img_date_str = f"{pre_img[0:4]}-{pre_img[4:6]}-{pre_img[6:8]}"
+    pre_y, pre_m, pre_d = int(pre_img[0:4]), int(pre_img[4:6]), int(pre_img[6:8])
+    arcpy.AddField_management(out_fc, "PRE_FIRE_IMAGE_DATE", "DATE")
+    arcpy.management.CalculateField(
+        out_fc, "PRE_FIRE_IMAGE_DATE",
+        f"datetime.datetime({pre_y},{pre_m},{pre_d})",
+        "PYTHON3", code_block="import datetime" )
     print('    - added pre img date to feature class')
     
-    #POST_FIRE_IMAGE
-    f = 'POST_FIRE_IMAGE'
-    post_fire_image_list = data_dict['post_scenes']
-    post_fire_image = ','.join(post_fire_image_list)
-    arcpy.AddField_management(out_fc, f, "TEXT")
-    arcpy.CalculateField_management(out_fc, f, "\"" + post_fire_image + "\"", "PYTHON_9.3") 
+    # POST_FIRE_IMAGE (list -> CSV)
+    arcpy.AddField_management(out_fc, "POST_FIRE_IMAGE", "TEXT")
+    post_fire_image = ",".join(data_dict.get('post_scenes', []))
+    arcpy.management.CalculateField(out_fc, "POST_FIRE_IMAGE", f"'{post_fire_image}'", "PYTHON3")
     print('    - added post img to feature class')
 
-    
-    #POST_FIRE_IMAGE_DATE
-    f = "POST_FIRE_IMAGE_DATE"
-    post_img_date_str = post_img[0:4] + '-' + post_img[4:6] + '-' + post_img[6:8]
-    post_img_date = datetime.strptime(post_img_date_str, '%Y-%m-%d')
-    arcpy.AddField_management(out_fc, f, "DATE")
-    
-    with arcpy.da.UpdateCursor(out_fc, [f]) as rows:
-        for row in rows:
-            rows.updateRow([post_img_date])
+    # POST_FIRE_IMAGE_DATE
+    post_y, post_m, post_d = int(post_img[0:4]), int(post_img[4:6]), int(post_img[6:8])
+    arcpy.AddField_management(out_fc, "POST_FIRE_IMAGE_DATE", "DATE")
+    arcpy.management.CalculateField(
+        out_fc, "POST_FIRE_IMAGE_DATE",
+        f"datetime.datetime({post_y},{post_m},{post_d})",
+        "PYTHON3", code_block="import datetime"
+    )
 
     print('    - added post img date to feature class')
     
@@ -294,40 +291,39 @@ arcpy.Append_management(simplify_fc_list, gdb_name, "NO_TEST")
 print('appended simplified fcs')
    
 #calc burn sev text values
-fields = ['gridcode', 'BURN_SEVERITY_RATING','COMMENTS']
-with arcpy.da.UpdateCursor(gdb_name, fields) as update_cur:
-    for row in update_cur:
-        #print(row[0]) #for debug
-        if row[0] == 0:
-            burnsev = 'Unknown'
-            comments = None
-        if row[0] == 1:
-            burnsev = 'Unburned'
-            comments = None
-        if row[0] == 2:
-            burnsev = 'Low'
-            comments = None
-        if row[0] == 3:
-            burnsev = 'Medium'
-            comments = None
-        if row[0] == 4:
-            burnsev = 'High'
-            comments = None
-        if row[0] == 5:
-            burnsev = 'Unburned'
-            comments = 'Satellite-derived water polygon'
-        #print(burnsev)
-        row[1] = burnsev
-        row[2] = comments
-        update_cur.updateRow(row)
+#Map gridcode -> burn severity via CalculateField (faster than UpdateCursor)
+mapping_code = {
+    0: "Unknown",
+    1: "Unburned",
+    2: "Low",
+    3: "Medium",
+    4: "High",
+    5: "Unburned"
+}
+arcpy.management.CalculateField(
+    gdb_name, "BURN_SEVERITY_RATING",
+    "mapping.get(!gridcode!, 'Unknown')",
+    "PYTHON3",
+    code_block=f"mapping={mapping_code}"
+)
+arcpy.management.CalculateField(
+    gdb_name, "COMMENTS",
+    "'Satellite-derived water polygon' if !gridcode! == 5 else None",
+    "PYTHON3"
+)
 
 #calculate areas and lengths automatically
 #calculate FEATURE_AREA_SQM, FEATURE_LENGTH_M, AREA_HA
 
 layer = os.path.join(output_gdb, gdb_name)
-arcpy.management.CalculateGeometryAttributes(layer, "AREA_HA AREA", '', "HECTARES", proj, "SAME_AS_INPUT")
-arcpy.management.CalculateGeometryAttributes(layer, "FEATURE_AREA_SQM AREA", '', "SQUARE_METERS", proj, "SAME_AS_INPUT")
-arcpy.management.CalculateGeometryAttributes(layer, "FEATURE_LENGTH_M PERIMETER_LENGTH", "METERS", '', proj, "SAME_AS_INPUT")
+print("line 325", layer)
+geom_fields = [[ "FEATURE_AREA_SQM", "AREA" ], [ "FEATURE_LENGTH_M", "PERIMETER_LENGTH" ]]
+arcpy.management.CalculateGeometryAttributes(
+    gdb_name,
+    geom_fields,
+    length_unit="METERS",
+    area_unit="SQUARE_METERS",
+    coordinate_system=proj)
 
 # Run a topology check and fix any errors
 arcpy.management.CheckGeometry(
