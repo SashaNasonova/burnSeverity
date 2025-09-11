@@ -113,7 +113,7 @@ def water_masking(barc_raster, water_layer):
 
 # Define variables
 root = r"\\spatialfiles2.bcgov\Work\FOR\VIC\HTS\INV\WorkArea\pmarczak\burnseverity" # root folder
-basename = 'interim_burn_severity_test' # output geodatabase name
+basename = 'one_year_post' # output geodatabase name
 fire_year = '2024' #fire year, will be appended to the basename
 
 # Load in water layer from objectstorage
@@ -137,30 +137,31 @@ arcpy.env.pyramid = "PYRAMIDS"
 
 
 # For each firenumber, get barc file 
-for firenumber in firelist:
-    print('Filtering',firenumber)
-    barc_path = os.path.join(outpath,firenumber,'barc')
-    arcpy.env.workspace = barc_path
-    print("line 149", firenumber)
-    #i = getfiles(barc_path,'_clip.tif')[0]
-    i_full = getbarc_notclipped(barc_path,'.tif')[0]
-    # BuildRasterAttributeTable_management requires FILENAME not PATHNAME
-    #therefore input i should be tif name only
-    i_name = os.path.basename(i_full)
-    print('Masking water, setting water pixels to 5')
-    ii = water_masking(i_name,water_layer)
-    print('Input BARC raster:',i_name) #input is i for water masking, output is ii
-    print('Output water-masked BARC raster', ii) #output after water masking
-    out_name = Path(ii).stem + '_filtered.tif'
-    out_raster = os.path.join(filtered_path,out_name)
-    print('Output BARC raster:',out_raster)
-    barc_filter(ii,out_raster)
+# for firenumber in firelist:
+#     if firenumber in ("")
+#     print('Filtering',firenumber)
+#     barc_path = os.path.join(outpath,firenumber,'barc')
+#     arcpy.env.workspace = barc_path
+#     print("line 149", firenumber)
+#     #i = getfiles(barc_path,'_clip.tif')[0]
+#     i_full = getbarc_notclipped(barc_path,'.tif')[0]
+#     # BuildRasterAttributeTable_management requires FILENAME not PATHNAME
+#     #therefore input i should be tif name only
+#     i_name = os.path.basename(i_full)
+#     print('Masking water, setting water pixels to 5')
+#     ii = water_masking(i_name,water_layer)
+#     print('Input BARC raster:',i_name) #input is i for water masking, output is ii
+#     print('Output water-masked BARC raster', ii) #output after water masking
+#     out_name = Path(ii).stem + '_filtered.tif'
+#     out_raster = os.path.join(filtered_path,out_name)
+#     print('Output BARC raster:',out_raster)
+#     barc_filter(ii,out_raster)
     
 
-# New dict for sceneIds
-d = dict.fromkeys(firelist)
+# # New dict for sceneIds
+# d = dict.fromkeys(firelist)
 
-df = pd.DataFrame(data=None,columns=['barc_tif','PRE_FIRE_IMAGE','POST_FIRE_IMAGE'])
+# df = pd.DataFrame(data=None,columns=['barc_tif','PRE_FIRE_IMAGE','POST_FIRE_IMAGE'])
 
 # Look for burn severity 
 barc_folder = os.path.join(root,'export','filtered')
@@ -192,8 +193,6 @@ print(barc_list)
 
 #expects barc_tif in the following format (BARC_C52648_20220910_20221030_S2_filtered.tif) 
 for barc_tif in barc_list:
-        
-    print(barc_tif)
     print('converting', os.path.basename(barc_tif), 'to polygon')
     fire_number = barc_tif.rsplit('_')[1]
     pre_img = barc_tif.rsplit('_')[2]
@@ -316,7 +315,6 @@ arcpy.management.CalculateField(
 #calculate FEATURE_AREA_SQM, FEATURE_LENGTH_M, AREA_HA
 
 layer = os.path.join(output_gdb, gdb_name)
-print("line 325", layer)
 geom_fields = [[ "FEATURE_AREA_SQM", "AREA" ], [ "FEATURE_LENGTH_M", "PERIMETER_LENGTH" ]]
 arcpy.management.CalculateGeometryAttributes(
     gdb_name,
