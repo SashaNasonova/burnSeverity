@@ -323,6 +323,14 @@ arcpy.management.CalculateGeometryAttributes(
     area_unit="SQUARE_METERS",
     coordinate_system=proj)
 
+geom_fields_ha = [["AREA_HA","AREA"]]
+arcpy.management.CalculateGeometryAttributes(
+    layer,
+    geom_fields_ha,
+    area_unit="HECTARES",
+    coordinate_system=proj
+)
+
 # Run a topology check and fix any errors
 arcpy.management.CheckGeometry(
     in_features=layer,
